@@ -176,13 +176,3 @@ export async function requestPersistentStorage(): Promise<boolean> {
     return false;
   }
 }
-
-export async function storageEstimate(): Promise<{ usage: number; quota: number } | null> {
-  try {
-    if (!navigator.storage?.estimate) return null;
-    const { usage = 0, quota = 0 } = await navigator.storage.estimate();
-    return quota ? { usage, quota } : null;
-  } catch {
-    return null;
-  }
-}

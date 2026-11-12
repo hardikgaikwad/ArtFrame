@@ -36,12 +36,13 @@ export function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: numb
   return debounced;
 }
 
-export function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+/** "Today, 7:21 PM", "Yesterday, 9:05 AM", or "12 Nov 2026" for older dates. */
+export function friendlyDate(timestamp: number, now = Date.now()): string {
+  const date = new Date(timestamp);
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (timestamp >= startOfToday.getTime()) return `Today, ${time}`;
+  if (timestamp >= startOfToday.getTime() - 86_400_000) return `Yesterday, ${time}`;
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }

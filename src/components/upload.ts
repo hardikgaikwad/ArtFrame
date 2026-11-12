@@ -1,8 +1,9 @@
 import type { EditorSession } from '../app/state';
 import { ACCEPT_ATTRIBUTE, loadUpload } from '../services/image-loader';
 import { confirmDialog } from '../utils/dialog';
-import { button, h } from '../utils/dom';
+import { h } from '../utils/dom';
 import { userMessage } from '../utils/errors';
+import { stepFooter } from './step-footer';
 
 export interface StepView {
   el: HTMLElement;
@@ -18,9 +19,8 @@ export function createUploadStep(session: EditorSession, onUploaded: () => void)
   const zone = h(
     'label',
     { class: 'upload-zone', for: 'upload-input' },
-    h('span', { class: 'upload-zone-title' }, session.image ? 'Choose a different picture' : 'Upload Artwork'),
-    h('span', { class: 'upload-zone-hint' }, 'Tap here to choose a photo or scan of your artwork.'),
-    h('span', { class: 'upload-zone-hint' }, 'Photos from phones, tablets and cameras all work, including iPhone and iPad photos.'),
+    h('span', { class: 'upload-zone-title' }, 'Choose a photo'),
+    h('span', { class: 'upload-zone-hint' }, 'Tap here to pick a photo or scan of your artwork.'),
   );
 
   async function handleFile(file: File | undefined) {
@@ -64,24 +64,15 @@ export function createUploadStep(session: EditorSession, onUploaded: () => void)
     void handleFile(event.dataTransfer?.files[0]);
   });
 
-  const current = session.image
-    ? h(
-        'div',
-        { class: 'upload-current' },
-        h('img', { src: session.image.url, alt: 'Your uploaded artwork', class: 'upload-current-image' }),
-        button('Continue to Crop', () => session.setStep('crop'), { class: 'btn btn-primary' }),
-      )
-    : null;
-
   const el = h(
     'section',
     { class: 'step step-upload', 'aria-labelledby': 'upload-heading' },
-    h('h2', { id: 'upload-heading', class: 'step-heading' }, session.image ? 'Your Artwork' : 'Upload Artwork'),
-    current,
+    h('h2', { id: 'upload-heading', class: 'step-heading' }, session.image ? 'Use a different picture' : 'Add your picture'),
     input,
     zone,
     status,
     error,
+    session.image ? stepFooter(() => session.setStep('crop'), h('span')) : null,
   );
   return { el, destroy() {} };
 }

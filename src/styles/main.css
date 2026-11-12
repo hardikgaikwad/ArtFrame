@@ -30,6 +30,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Keeps a focused field clear of the Back / Next bar that sits at the bottom of the screen. */
+  scroll-padding-bottom: 104px;
 }
 
 body {

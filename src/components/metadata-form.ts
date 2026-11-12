@@ -2,6 +2,7 @@ import type { EditorSession } from '../app/state';
 import type { MetadataField } from '../types/artwork';
 import { button, h } from '../utils/dom';
 import { createArtworkPreview } from './artwork-preview';
+import { stepFooter } from './step-footer';
 import type { StepView } from './upload';
 
 const FIELDS: { field: MetadataField; label: string; example: string }[] = [
@@ -31,7 +32,7 @@ export function createDetailsStep(session: EditorSession, onContinue: () => void
       autocapitalize: field === 'edition' ? 'off' : 'sentences',
       spellcheck: field === 'title' || field === 'medium' ? 'true' : 'false',
       maxlength: 200,
-      enterkeyhint: 'next',
+      enterkeyhint: field === 'year' ? 'done' : 'next',
     });
     input.value = session.project.metadata[field];
     input.addEventListener('input', () => session.updateMetadata(field, input.value));
@@ -59,27 +60,21 @@ export function createDetailsStep(session: EditorSession, onContinue: () => void
   const form = h(
     'form',
     { class: 'details-form', novalidate: true },
-    h('p', { class: 'field-hint' }, 'All details are optional. Anything left empty is left off the sheet.'),
+    h('p', { class: 'field-hint' }, 'Fill in what you know. Empty boxes are left out.'),
     ...inputs,
     warning,
-    h(
-      'div',
-      { class: 'toolbar' },
-      button('Change crop', () => session.setStep('crop'), { class: 'btn' }),
-      h('span', { class: 'toolbar-spacer' }),
-      h('button', { type: 'submit', class: 'btn btn-primary' }, 'Continue to Background'),
-    ),
   );
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    onContinue();
+    (document.activeElement as HTMLElement | null)?.blur();
   });
 
   const el = h(
     'section',
     { class: 'step step-details', 'aria-labelledby': 'details-heading' },
-    h('h2', { id: 'details-heading', class: 'step-heading' }, 'Artwork Details'),
+    h('h2', { id: 'details-heading', class: 'step-heading' }, 'Details'),
     h('div', { class: 'split' }, form, h('div', { class: 'split-preview' }, preview.el)),
+    stepFooter(() => session.setStep('crop'), button('Next: Background', onContinue, { class: 'btn btn-primary' })),
   );
   return {
     el,

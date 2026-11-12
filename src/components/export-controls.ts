@@ -13,20 +13,28 @@ import { userMessage } from '../utils/errors';
 import { artworkFilename } from '../utils/filename-generator';
 import { createArtworkPreview } from './artwork-preview';
 import { OVERFLOW_MESSAGE } from './metadata-form';
+import { stepFooter } from './step-footer';
 import type { StepView } from './upload';
 
-const FORMATS: { format: ExportFormat; label: string; hint: string }[] = [
-  { format: 'png', label: 'PNG', hint: 'Best quality. Recommended.' },
-  { format: 'jpg', label: 'JPG', hint: 'Smaller file, very slightly compressed.' },
-  { format: 'jpeg', label: 'JPEG', hint: 'The same as JPG, with “.jpeg” at the end of the name.' },
-  { format: 'pdf', label: 'PDF', hint: 'For printing or sending as a document.' },
+const FORMATS: { format: ExportFormat; label: string; hint: string; short: string }[] = [
+  { format: 'png', label: 'PNG', hint: 'Best quality. Recommended.', short: 'best quality' },
+  { format: 'jpg', label: 'JPG', hint: 'Smaller file, very slightly compressed.', short: 'smaller file' },
+  { format: 'jpeg', label: 'JPEG', hint: 'The same as JPG, named “.jpeg”.', short: 'smaller file' },
+  { format: 'pdf', label: 'PDF', hint: 'For printing or sending as a document.', short: 'for printing' },
 ];
+
+function formatSummary(format: ExportFormat): string {
+  const { label, short } = FORMATS.find((f) => f.format === format)!;
+  return `File type: ${label} (${short})`;
+}
 
 let lastFormat: ExportFormat = 'png';
 
-export function createPreviewStep(session: EditorSession): StepView {
+export function createPreviewStep(session: EditorSession, onFinish: () => void): StepView {
   const preview = createArtworkPreview(session, { maxHeightRatio: 0.65 });
   const status = h('p', { class: 'status-text', role: 'status', 'aria-live': 'polite' });
+  // PNG is right for almost everyone, so the other file types are tucked away until asked for.
+  const summary = h('summary', { class: 'format-summary' }, formatSummary(lastFormat));
   const progress = h('progress', { class: 'progress', max: 100, value: 0, hidden: true });
   const result = h('div', { class: 'export-result', 'aria-live': 'polite' });
   let busy = false;
@@ -45,6 +53,7 @@ export function createPreviewStep(session: EditorSession): StepView {
     radio.checked = format === lastFormat;
     radio.addEventListener('change', () => {
       lastFormat = format;
+      summary.textContent = formatSummary(format);
       result.replaceChildren();
     });
     return h(
@@ -60,7 +69,7 @@ export function createPreviewStep(session: EditorSession): StepView {
     );
   });
 
-  const downloadBtn = button('Download', () => void runExport(1), { class: 'btn btn-primary btn-large' });
+  const downloadBtn = button('Download', () => void runExport(1), { class: 'btn btn-primary' });
   const overflowNote = h('p', { class: 'warning-text' });
 
   function selectedFormat(): ExportFormat {
@@ -85,7 +94,7 @@ export function createPreviewStep(session: EditorSession): StepView {
     result.replaceChildren();
     progress.hidden = false;
     progress.value = 0;
-    status.textContent = 'Preparing your file… This can take a little while for large pictures.';
+    status.textContent = 'Making your file…';
     const filename = artworkFilename(session.project.metadata, format);
     try {
       const blob = await renderExport(
@@ -113,11 +122,7 @@ export function createPreviewStep(session: EditorSession): StepView {
   }
 
   function showReady(blob: Blob, filename: string, scale: number) {
-    const actions = h(
-      'div',
-      { class: 'toolbar' },
-      button('Download again', () => downloadBlob(blob, filename), { class: 'btn' }),
-    );
+    const actions = h('div', { class: 'toolbar' });
     if (canShareFile(blob, filename)) {
       actions.append(
         button(
@@ -132,12 +137,13 @@ export function createPreviewStep(session: EditorSession): StepView {
         ),
       );
     }
+    actions.append(button('Back to My Artworks', onFinish, { class: 'btn' }));
     result.replaceChildren(
       h('p', { class: 'success-text' }, `Your file is ready: ${filename}`),
       scale < 1
         ? h('p', { class: 'field-hint' }, `This file was made at ${Math.round(scale * 100)}% of full size, as you chose.`)
         : '',
-      h('p', { class: 'field-hint' }, 'If the download did not start, tap “Download again” or use “Share or Save to Files”.'),
+      h('p', { class: 'field-hint' }, 'You will find it in your Downloads.'),
       actions,
     );
   }
@@ -175,7 +181,7 @@ export function createPreviewStep(session: EditorSession): StepView {
   const el = h(
     'section',
     { class: 'step step-preview', 'aria-labelledby': 'preview-heading' },
-    h('h2', { id: 'preview-heading', class: 'step-heading' }, 'Preview and Download'),
+    h('h2', { id: 'preview-heading', class: 'step-heading' }, 'Download'),
     h(
       'div',
       { class: 'split' },
@@ -183,27 +189,19 @@ export function createPreviewStep(session: EditorSession): StepView {
       h(
         'div',
         { class: 'export-panel' },
-        h('fieldset', { class: 'format-group' }, h('legend', { class: 'field-label' }, 'File type'), ...options),
         h(
-          'p',
-          { class: 'field-hint' },
-          'PNG keeps every detail of your picture exactly. JPG and JPEG are slightly compressed to make smaller files. ' +
-            'No file type can bring back detail that was not in the original photo.',
+          'details',
+          { class: 'format-picker' },
+          summary,
+          h('fieldset', { class: 'format-group' }, h('legend', { class: 'visually-hidden' }, 'File type'), ...options),
         ),
         overflowNote,
-        downloadBtn,
         progress,
         status,
         result,
-        h(
-          'div',
-          { class: 'toolbar' },
-          button('Change background', () => session.setStep('sheet'), { class: 'btn' }),
-          button('Edit details', () => session.setStep('details'), { class: 'btn' }),
-          button('Change crop', () => session.setStep('crop'), { class: 'btn' }),
-        ),
       ),
     ),
+    stepFooter(() => session.setStep('sheet'), downloadBtn),
   );
 
   return {

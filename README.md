@@ -6,8 +6,22 @@ artwork documentation sheet: the artwork centred on a white sheet, with its deta
 
 Everything happens in the browser. Pictures are never uploaded anywhere.
 
-**Workflow:** Upload → Crop → Details → Background → Preview and Download. Work is saved
-automatically in the browser, and any number of artworks can be kept and reopened.
+**Workflow:** New Artwork (opens the photo picker) → 1 Crop → 2 Details → 3 Background →
+4 Download. Work is saved automatically in the browser, and any number of artworks can be kept
+and reopened.
+
+**Ease of use.** The app is designed for people who are not comfortable with technology:
+
+- A numbered step bar ("1 Crop, 2 Details, 3 Background, 4 Download") with the same words used
+  in the step headings and buttons; any step can be revisited by tapping it.
+- A Back / Next bar in the same place on every step ("Next: Details", "Next: Background",
+  "Next: Download", then "Download"). On phones it stays at the bottom of the screen.
+- One main (black) button per screen; instructions kept to one short line.
+- "New Artwork" opens the photo picker directly, as camera and messaging apps do.
+- PNG is the default file type; JPG, JPEG and PDF are one tap away under "File type: … Change".
+- Large touch targets (at least 44 px, main buttons 52 px), including round crop corner
+  handles with a 44 px touch area.
+- Library dates read "Today, 7:21 PM" / "Yesterday, …"; tapping an artwork's row opens it.
 
 ---
 
@@ -72,7 +86,8 @@ project information ever appears in a URL.
 ```
 src/
   app/          app.ts (library ⇄ editor switching), navigation.ts (editor steps), state.ts (EditorSession + autosave)
-  components/   upload, crop-editor, metadata-form, artwork-preview, export-controls, project-library
+  components/   upload, crop-editor, metadata-form, artwork-preview, export-controls, project-library,
+                sheet-shape, step-footer
   services/     image-loader, heic-converter, crop-service, layout-engine, composition-engine,
                 png-encoder, export-service, pdf-service, storage-service
   utils/        dom helpers, dialogs, errors, filenames, text measurement, canvas/memory management

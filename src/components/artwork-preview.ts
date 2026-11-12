@@ -8,10 +8,14 @@ import type { StepView } from './upload';
  * Live preview: the full-resolution layout drawn at screen size from the reduced
  * preview copy. Redraws are batched to one per animation frame.
  */
-export function createArtworkPreview(session: EditorSession, options: { maxHeightRatio?: number } = {}): StepView {
+export function createArtworkPreview(
+  session: EditorSession,
+  options: { maxHeightRatio?: number; phoneMaxHeightRatio?: number } = {},
+): StepView {
   const canvas = h('canvas', { class: 'preview-canvas', role: 'img', 'aria-label': 'Preview of your artwork sheet' });
   const el = h('div', { class: 'preview-frame' }, canvas);
   const maxHeightRatio = options.maxHeightRatio ?? 0.7;
+  const phone = window.matchMedia('(max-width: 599px)');
   let frame = 0;
 
   function draw() {
@@ -21,7 +25,8 @@ export function createArtworkPreview(session: EditorSession, options: { maxHeigh
     const preview = session.preview;
     const available = el.clientWidth;
     if (!layout || !crop || !preview || available <= 0) return;
-    const maxHeight = Math.max(240, window.innerHeight * maxHeightRatio);
+    const ratio = phone.matches ? (options.phoneMaxHeightRatio ?? maxHeightRatio) : maxHeightRatio;
+    const maxHeight = Math.max(240, window.innerHeight * ratio);
     const cssScale = Math.min(available / layout.sheetWidth, maxHeight / layout.sheetHeight);
     const cssWidth = Math.floor(layout.sheetWidth * cssScale);
     const cssHeight = Math.floor(layout.sheetHeight * cssScale);

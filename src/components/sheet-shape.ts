@@ -2,6 +2,7 @@ import type { EditorSession } from '../app/state';
 import { SHEET_RATIOS, type SheetRatioId } from '../services/layout-engine';
 import { button, h } from '../utils/dom';
 import { createArtworkPreview } from './artwork-preview';
+import { stepFooter } from './step-footer';
 import type { StepView } from './upload';
 
 const LABELS: Record<SheetRatioId, string> = {
@@ -19,10 +20,11 @@ const LABELS: Record<SheetRatioId, string> = {
 
 /** Chooses the shape of the white background. The artwork itself is not changed. */
 export function createSheetStep(session: EditorSession, onContinue: () => void): StepView {
-  const preview = createArtworkPreview(session, { maxHeightRatio: 0.6 });
+  // On phones the preview sits above the choices, so it is kept short enough to see both.
+  const preview = createArtworkPreview(session, { maxHeightRatio: 0.6, phoneMaxHeightRatio: 0.38 });
 
   const options = new Map<SheetRatioId, HTMLButtonElement>();
-  const group = h('div', { class: 'segmented segmented-sheet', role: 'group', 'aria-label': 'Shape of the background' });
+  const group = h('div', { class: 'segmented segmented-sheet', role: 'group', 'aria-labelledby': 'shape-label' });
   for (const id of SHEET_RATIOS) {
     const option = button(LABELS[id], () => session.setSheetRatio(id), { class: 'segmented-option' });
     options.set(id, option);
@@ -84,31 +86,20 @@ export function createSheetStep(session: EditorSession, onContinue: () => void):
   const el = h(
     'section',
     { class: 'step step-sheet', 'aria-labelledby': 'sheet-heading' },
-    h('h2', { id: 'sheet-heading', class: 'step-heading' }, 'Background Shape'),
+    h('h2', { id: 'sheet-heading', class: 'step-heading' }, 'Background'),
     h(
       'div',
       { class: 'split' },
       h(
         'div',
         { class: 'details-form' },
-        h(
-          'p',
-          { class: 'field-hint' },
-          'Choose the shape of the white background. Your artwork and its details stay centred. ' +
-            'Automatic fits the background to your artwork.',
-        ),
+        h('p', { class: 'field-label', id: 'shape-label' }, 'Shape of the white background'),
         group,
         sizeControl,
-        h(
-          'div',
-          { class: 'toolbar' },
-          button('Edit details', () => session.setStep('details'), { class: 'btn' }),
-          h('span', { class: 'toolbar-spacer' }),
-          button('Continue to Preview', onContinue, { class: 'btn btn-primary' }),
-        ),
       ),
       h('div', { class: 'split-preview' }, preview.el),
     ),
+    stepFooter(() => session.setStep('details'), button('Next: Download', onContinue, { class: 'btn btn-primary' })),
   );
   return {
     el,

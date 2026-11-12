@@ -2,6 +2,7 @@ import { createLibrary } from '../components/project-library';
 import type { StepView } from '../components/upload';
 import { confirmDialog } from '../utils/dialog';
 import { button, h } from '../utils/dom';
+import { loadUpload } from '../services/image-loader';
 import { userMessage } from '../utils/errors';
 import { createEditor } from './navigation';
 import { EditorSession } from './state';
@@ -23,12 +24,6 @@ export function startApp(root: HTMLElement): void {
     { class: 'app-header' },
     h('a', { class: 'skip-link', href: '#main' }, 'Skip to content'),
     button('ArtFrame', () => void showLibrary(), { class: 'brand' }),
-    h(
-      'nav',
-      { class: 'app-nav', 'aria-label': 'Main' },
-      button('My Artworks', () => void showLibrary(), { class: 'btn btn-quiet' }),
-      button('Create New Artwork', () => void openEditor(null), { class: 'btn' }),
-    ),
   );
   root.replaceChildren(header, banner, main);
 
@@ -68,15 +63,32 @@ export function startApp(root: HTMLElement): void {
     }
     inEditorHistory = false;
     banner.textContent = '';
-    mount(createLibrary({ onCreate: () => void openEditor(null), onOpen: (id) => void openEditor(id) }));
+    mount(createLibrary({ onCreate: createFromFile, onOpen: (id) => void openEditor(id) }));
   }
 
-  async function openEditor(projectId: string | null) {
+  /**
+   * New artwork: the picture is chosen first (straight from My Artworks), so the editor
+   * opens on Crop. Nothing is created if opening the picture fails; the error shows in the library.
+   */
+  async function createFromFile(file: File, onProgress: (message: string) => void) {
+    if (!(await closeSession())) return;
+    const upload = await loadUpload(file, onProgress);
+    onProgress('Saving…');
+    const next = EditorSession.createNew();
+    await next.setImage(file, upload);
+    next.setStep('crop');
+    banner.textContent = '';
+    session = next;
+    mount(createEditor(next, () => void showLibrary()));
+    if (!inEditorHistory) pushEditorHistory();
+  }
+
+  async function openEditor(projectId: string) {
     if (!(await closeSession())) return;
     banner.textContent = '';
     let next: EditorSession;
     try {
-      next = projectId ? await EditorSession.open(projectId) : EditorSession.createNew();
+      next = await EditorSession.open(projectId);
     } catch (error) {
       banner.textContent = userMessage(error, 'This artwork could not be opened. Please try again.');
       void showLibrary();

@@ -86,10 +86,11 @@ export async function resetApp(page: Page): Promise<void> {
 }
 
 export async function uploadNew(page: Page, fixture: Fixture): Promise<void> {
-  await page.getByRole('button', { name: 'Create New Artwork' }).first().click();
+  // "New Artwork" opens the system picker; the test hands the file to its input directly.
+  await expect(page.getByRole('button', { name: 'New Artwork' })).toBeEnabled();
   await page.locator('#upload-input').setInputFiles(fixture);
-  await expect(page.getByRole('heading', { name: 'Crop Image' })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole('button', { name: 'Use this crop' })).toBeEnabled({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Crop', exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Next: Details' })).toBeEnabled({ timeout: 30_000 });
 }
 
 export async function fillDetails(page: Page, values: Partial<Record<'Edition' | 'Medium' | 'Size' | 'Title' | 'Year', string>>) {
@@ -103,6 +104,9 @@ export async function waitForSaved(page: Page): Promise<void> {
 }
 
 export async function download(page: Page, format: 'PNG' | 'JPG' | 'JPEG' | 'PDF'): Promise<{ download: Download; bytes: Buffer }> {
+  // Other file types sit behind the "File type" disclosure.
+  const picker = page.locator('.format-picker');
+  if (!(await picker.evaluate((el) => (el as HTMLDetailsElement).open))) await picker.locator('summary').click();
   await page.getByLabel(new RegExp(`^${format}\\b`)).check();
   const pending = page.waitForEvent('download', { timeout: 60_000 });
   await page.getByRole('button', { name: 'Download', exact: true }).click();

@@ -32,15 +32,15 @@ test.afterEach(() => {
 
 /** From the Details step, through Background (left on Automatic), to Preview and Download. */
 async function toDownloadStep(page: Page) {
-  await page.getByRole('button', { name: 'Continue to Background' }).click();
-  await expect(page.getByRole('heading', { name: 'Background Shape' })).toBeVisible();
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
-  await expect(page.getByRole('heading', { name: 'Preview and Download' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next: Background' }).click();
+  await expect(page.getByRole('heading', { name: 'Background', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Next: Download' }).click();
+  await expect(page.getByRole('heading', { name: 'Download', exact: true })).toBeVisible();
 }
 
 async function toPreview(page: Page) {
-  await page.getByRole('button', { name: 'Use this crop' }).click();
-  await expect(page.getByRole('heading', { name: 'Artwork Details' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next: Details' }).click();
+  await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
 }
 
 test('PNG export copies the artwork pixel-for-pixel and justifies the metadata to its width', async ({ page }) => {
@@ -182,9 +182,9 @@ test('every aspect ratio crops correctly, and the ratio can be changed after ent
   await page.getByRole('button', { name: '4:3', exact: true }).click();
   await toPreview(page);
   await fillDetails(page, FULL_DETAILS);
-  await page.getByRole('button', { name: 'Change crop' }).click();
+  await page.getByRole('button', { name: '1. Crop' }).click();
   await expect(page.getByRole('button', { name: '4:3', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('button', { name: 'Use this crop' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Next: Details' })).toBeEnabled();
   await page.getByRole('button', { name: '4:5', exact: true }).click();
   await toPreview(page);
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Untitled');
@@ -244,7 +244,7 @@ test('accepts JPEG and WebP, very wide and very tall pictures', async ({ page })
 });
 
 test('rejects files that are not supported pictures with a clear message', async ({ page }) => {
-  await page.getByRole('button', { name: 'Create New Artwork' }).first().click();
+  // The picture is chosen straight from My Artworks; a bad file leaves you there with a message.
   await page.locator('#upload-input').setInputFiles({
     name: 'notes.jpg',
     mimeType: 'image/jpeg',
@@ -269,7 +269,7 @@ test('details that cannot fit on one line show a warning and block download', as
   await expect(page.getByText('too long to fit on one line')).toBeVisible();
   await toDownloadStep(page);
   await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: 'Edit details' }).click();
+  await page.getByRole('button', { name: '2. Details' }).click();
   await fillDetails(page, { Title: 'Short' });
   await expect(page.getByText('too long to fit on one line')).toHaveCount(0);
   await toDownloadStep(page);
@@ -295,9 +295,10 @@ test('saves several artworks, restores them after reload, renames, replaces and 
   await expect(page.locator('.library-thumb img')).toHaveCount(2);
 
   await page.getByRole('button', { name: 'Open First' }).first().click();
-  await expect(page.getByRole('heading', { name: 'Artwork Details' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
   await expect(page.getByLabel('Year', { exact: true })).toHaveValue('2019');
-  await page.getByRole('button', { name: '1. Upload' }).click();
+  await page.getByRole('button', { name: '1. Crop' }).click();
+  await page.getByRole('button', { name: 'Use a different picture' }).click();
 
   // Replacing asks first; cancelling keeps the old picture.
   const replacement = { name: 'replacement.png', mimeType: 'image/png', buffer: await makeImage(page, 700, 300, 'image/png') };
@@ -306,7 +307,7 @@ test('saves several artworks, restores them after reload, renames, replaces and 
   expect((await storedProjects(page)).find((p) => p.metadata.title === 'First').image.width).toBe(500);
   await page.locator('#upload-input').setInputFiles(replacement);
   await page.getByRole('dialog').getByRole('button', { name: 'Replace picture' }).click();
-  await expect(page.getByRole('heading', { name: 'Crop Image' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Crop', exact: true })).toBeVisible();
   await waitForSaved(page);
   const replaced = (await storedProjects(page)).find((p) => p.metadata.title === 'First');
   expect([replaced.image.width, replaced.image.height]).toEqual([700, 300]);
@@ -387,14 +388,14 @@ test('the background shape can be chosen after the details, and changed again la
   await uploadNew(page, { name: 'scan.png', mimeType: 'image/png', buffer: source });
   await toPreview(page);
   await fillDetails(page, FULL_DETAILS);
-  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await page.getByRole('button', { name: 'Next: Background' }).click();
   await expect(page.getByRole('button', { name: 'Automatic' })).toHaveAttribute('aria-pressed', 'true');
 
   // A portrait background around a landscape artwork.
   await page.getByRole('button', { name: '4:5', exact: true }).click();
   await expect(page.getByRole('button', { name: '4:5', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => (await storedProjects(page))[0].sheetRatio).toBe('4:5');
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await page.getByRole('button', { name: 'Next: Download' }).click();
 
   const preview = await page.locator('.preview-canvas').evaluate((c: HTMLCanvasElement) => c.width / c.height);
   expect(preview).toBeCloseTo(0.8, 2);
@@ -423,27 +424,27 @@ test('the background shape can be chosen after the details, and changed again la
   expect(isWhite(out.px(out.width - 5, out.height - 5))).toBe(true);
 
   // The screen shapes are offered too.
-  await page.getByRole('button', { name: 'Change background' }).click();
+  await page.getByRole('button', { name: '3. Background' }).click();
   await page.getByRole('button', { name: '9:16', exact: true }).click();
   await expect
     .poll(() => page.locator('.preview-canvas').evaluate((c: HTMLCanvasElement) => c.width / c.height))
     .toBeCloseTo(9 / 16, 2);
   await expect(page.getByRole('button', { name: '16:9', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '4:5', exact: true }).click();
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await page.getByRole('button', { name: 'Next: Download' }).click();
 
   // Change the crop afterwards: the background shape is kept.
-  await page.getByRole('button', { name: 'Change crop' }).click();
-  await expect(page.getByRole('button', { name: 'Use this crop' })).toBeEnabled();
+  await page.getByRole('button', { name: '1. Crop' }).click();
+  await expect(page.getByRole('button', { name: 'Next: Details' })).toBeEnabled();
   await page.getByRole('button', { name: '16:9', exact: true }).click();
-  await page.getByRole('button', { name: 'Use this crop' }).click();
-  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await page.getByRole('button', { name: 'Next: Details' }).click();
+  await page.getByRole('button', { name: 'Next: Background' }).click();
   await expect(page.getByRole('button', { name: '4:5', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   // And back to Automatic.
   await page.getByRole('button', { name: 'Automatic' }).click();
   await expect.poll(async () => (await storedProjects(page))[0].sheetRatio).toBe('auto');
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await page.getByRole('button', { name: 'Next: Download' }).click();
   const auto = await decodeImage(page, (await download(page, 'PNG')).bytes, 'image/png', { x: 0, y: 0, width: 1, height: 1 });
   const crop = (await storedProjects(page))[0].crop;
   const autoGeo = computeLayout(crop.width, crop.height, { edition: '', medium: '', size: '', title: '', year: '' }, () => 0);
@@ -456,7 +457,7 @@ test('the artwork size can be changed on the background without touching the art
   const source = await makeImage(page, W, H, 'image/png');
   await uploadNew(page, { name: 'scan.png', mimeType: 'image/png', buffer: source });
   await toPreview(page);
-  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await page.getByRole('button', { name: 'Next: Background' }).click();
   await page.getByRole('button', { name: '4:5', exact: true }).click();
 
   const slider = page.getByRole('slider', { name: 'Size of artwork' });
@@ -479,7 +480,7 @@ test('the artwork size can be changed on the background without touching the art
   await slider.fill('120');
   await expect.poll(async () => (await storedProjects(page))[0].artworkScale).toBe(1.2);
 
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await page.getByRole('button', { name: 'Next: Download' }).click();
   const { bytes } = await download(page, 'PNG');
   const geo = computeLayout(W, H, EMPTY_METADATA, () => 0, sheetRatioValue('4:5'), 1.2);
   const base = computeLayout(W, H, EMPTY_METADATA, () => 0, sheetRatioValue('4:5'));
@@ -501,8 +502,41 @@ test('the artwork size can be changed on the background without touching the art
   // Kept after a reload, and Reset goes back to 100%.
   await page.reload();
   await page.getByRole('button', { name: 'Open' }).first().click();
-  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await page.getByRole('button', { name: 'Next: Background' }).click();
   await expect(slider).toHaveValue('120');
   await page.getByRole('button', { name: 'Reset size' }).click();
   await expect(slider).toHaveValue('100');
+});
+
+test('New Artwork opens the photo picker, and the crop survives the screen changing size', async ({ page }) => {
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'New Artwork' }).click();
+  await (await chooser).setFiles({ name: 'scan.png', mimeType: 'image/png', buffer: await makeImage(page, 1200, 800, 'image/png') });
+  await expect(page.getByRole('button', { name: 'Next: Details' })).toBeEnabled({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: '1. Crop' })).toHaveAttribute('aria-current', 'step');
+
+  await page.getByRole('button', { name: '4:5', exact: true }).click();
+  await expect.poll(async () => (await storedProjects(page))[0]?.crop?.width).toBeTruthy();
+  const before = (await storedProjects(page))[0].crop;
+
+  // Rotate the device and back: the picture must still fill the crop frame exactly.
+  const size = page.viewportSize()!;
+  for (const next of [{ width: size.height, height: size.width }, size]) {
+    await page.setViewportSize(next);
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const stage = document.querySelector('.crop-stage')!.getBoundingClientRect();
+          const canvas = document.querySelector('.cropper-canvas')!.getBoundingClientRect();
+          return canvas.width <= stage.width + 1 && canvas.height <= stage.height + 1;
+        }),
+      )
+      .toBe(true);
+  }
+  await page.getByRole('button', { name: 'Next: Details' }).click();
+  const after = (await storedProjects(page))[0].crop;
+  expect(Math.abs(after.width - before.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(after.height - before.height)).toBeLessThanOrEqual(2);
+  expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(2);
 });

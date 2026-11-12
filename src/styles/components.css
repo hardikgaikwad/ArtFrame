@@ -59,6 +59,27 @@
   color: var(--color-error);
 }
 
+.btn-new::before {
+  content: '+';
+  margin-right: var(--space-2);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.btn-new {
+  min-height: 52px;
+  padding: var(--space-2) var(--space-5);
+  font-size: 18px;
+}
+
+.btn-link {
+  padding-left: 0;
+  padding-right: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  justify-self: start;
+}
+
 .btn-large {
   width: 100%;
   min-height: 52px;
@@ -82,33 +103,47 @@
   cursor: pointer;
 }
 
-/* Step tabs */
+/* Steps: a numbered progress bar. Done and current steps are dark; later steps are light. */
 
 .step-tab {
-  flex: 0 0 auto;
-  min-height: var(--touch);
-  padding: var(--space-2) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-1);
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: 4px solid var(--color-border);
   background: none;
   color: var(--color-muted);
-  font-size: 15px;
-  white-space: nowrap;
+  font-size: 16px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
-.step-tab-short {
-  display: none;
+.step-number {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 600;
 }
 
-@media (max-width: 599px) {
-  .step-tab-long {
-    display: none;
-  }
+.step-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  .step-tab-short {
-    display: inline;
-  }
+.step-tab.is-done {
+  color: var(--color-text);
+  border-bottom-color: var(--color-text);
 }
 
 .step-tab[aria-current='step'] {
@@ -117,9 +152,41 @@
   border-bottom-color: var(--color-text);
 }
 
+.step-tab[aria-current='step'] .step-number {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
+
 .step-tab:disabled {
   color: #a8a8a8;
   cursor: not-allowed;
+}
+
+/* Back / Next bar: same place on every step, and on phones always within reach. */
+
+.step-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-3) 0 max(var(--space-3), env(safe-area-inset-bottom));
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+.step-footer .btn {
+  min-height: 52px;
+  font-size: 17px;
+}
+
+.step-footer .btn-primary {
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
 }
 
 /* Save status */
@@ -253,20 +320,53 @@
   max-width: 420px;
 }
 
-.upload-current {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-}
-
-.upload-current-image {
-  max-height: 50vh;
-  border: 1px solid var(--color-border);
-}
-
 /* Crop */
+
+.crop-tools {
+  margin-bottom: var(--space-4);
+}
+
+.step-crop .cropper-crop-box .cropper-point {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--color-text);
+  opacity: 1;
+}
+
+.step-crop .cropper-crop-box .cropper-point.point-n,
+.step-crop .cropper-crop-box .cropper-point.point-s,
+.step-crop .cropper-crop-box .cropper-point.point-e,
+.step-crop .cropper-crop-box .cropper-point.point-w {
+  display: none;
+}
+
+.step-crop .cropper-crop-box .cropper-point.point-nw { left: -11px; top: -11px; }
+.step-crop .cropper-crop-box .cropper-point.point-ne { right: -11px; top: -11px; }
+.step-crop .cropper-crop-box .cropper-point.point-sw { left: -11px; bottom: -11px; }
+.step-crop .cropper-crop-box .cropper-point.point-se { right: -11px; bottom: -11px; }
+
+.step-crop .cropper-crop-box .cropper-point::before {
+  display: none;
+}
+
+/* Invisible 44px touch area around each 22px handle. */
+.step-crop .cropper-crop-box .cropper-point::after {
+  content: '';
+  position: absolute;
+  inset: -11px;
+}
+
+/* Cropper's own stylesheet loads after this one, hence the longer selectors above. */
+.step-crop .cropper-view-box {
+  outline: 2px solid #ffffff;
+  outline-color: rgba(255, 255, 255, 0.9);
+}
+
+.step-crop .cropper-line {
+  background-color: transparent;
+}
 
 .segmented {
   display: flex;
@@ -294,7 +394,10 @@
 }
 
 .crop-stage {
-  height: min(62vh, 640px);
+  /* Fits between the step bar and the Back / Next bar, so no corner handle is hidden under it.
+     svh is the height with the browser's toolbars showing; vh is the fallback. */
+  height: min(50vh, 640px);
+  height: min(calc(100svh - 360px), 640px);
   min-height: 260px;
   background: var(--color-surface);
   margin-bottom: var(--space-3);
@@ -307,6 +410,10 @@
 
 .step-crop .status-text {
   margin-bottom: var(--space-3);
+}
+
+.step-crop .crop-tools + .field-label {
+  margin-top: var(--space-2);
 }
 
 /* Size of artwork */
@@ -376,11 +483,42 @@
   align-content: start;
 }
 
+.format-picker {
+  border: 1px solid var(--color-border);
+}
+
+.format-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.format-summary::-webkit-details-marker {
+  display: none;
+}
+
+.format-summary::after {
+  content: 'Change';
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.format-picker[open] .format-summary::after {
+  content: 'Close';
+}
+
 .format-group {
   display: grid;
   gap: var(--space-2);
   margin: 0;
-  padding: 0;
+  padding: 0 var(--space-3) var(--space-3);
   border: 0;
 }
 
@@ -480,16 +618,24 @@
     padding-bottom: var(--space-1);
   }
 
-  .app-nav {
-    display: none;
-  }
-
   .main {
     padding-top: var(--space-4);
   }
 
   .editor-bar {
+    flex-wrap: nowrap;
+    justify-content: space-between;
     margin-bottom: var(--space-2);
+  }
+
+  /* The artwork's name is still announced, but the bar keeps to one line. */
+  .editor-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   .editor-bar .btn-quiet {
@@ -497,14 +643,24 @@
   }
 
   .step-tabs {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
     margin-bottom: var(--space-4);
   }
 
+  /* Number above the label so all four fit at any phone width. */
   .step-tab {
-    padding: var(--space-2) 2px;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 60px;
+    padding: var(--space-1) 0 var(--space-2);
     font-size: 14px;
+  }
+
+  .btn-new {
+    width: 100%;
+  }
+
+  .library-header .page-heading {
+    flex-basis: 100%;
   }
 
   .segmented {
@@ -517,22 +673,26 @@
     padding: var(--space-2) var(--space-1);
   }
 
-  /* Background step: "Automatic" gets two cells; preview comes right after the choices
-     so the effect of a tap is visible without scrolling. */
+  /* Background step: "Automatic" gets two cells; the preview goes on top, as in a photo
+     editor, so the effect of each tap is visible next to the choices. */
   .segmented-sheet .segmented-option:first-child {
     grid-column: span 2;
   }
 
-  .step-sheet .details-form {
-    display: contents;
-  }
-
   .step-sheet .split-preview {
-    order: 1;
+    order: -1;
   }
 
-  .step-sheet .details-form > .toolbar {
-    order: 2;
+  .step-footer .btn {
+    flex: 1 1 0;
+  }
+
+  .step-footer .btn-primary {
+    flex-grow: 2;
+  }
+
+  .step-footer > span:first-child {
+    display: none;
   }
 
   .step-heading {
