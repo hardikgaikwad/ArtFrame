@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_METADATA, type ArtworkMetadata } from '../types/artwork';
-import { computeLayout, LAYOUT, type MeasureText } from './layout-engine';
+import { computeLayout, LAYOUT, SHEET_RATIOS, sheetRatioValue, type MeasureText } from './layout-engine';
 
 // Deterministic stand-in for canvas measureText: every character is 0.5 em wide.
 const measure: MeasureText = (text, fontSize) => text.length * fontSize * 0.5;
@@ -122,5 +122,49 @@ describe('metadata justification', () => {
     for (let i = 1; i < fields.length; i++) {
       expect(fields[i].x).toBeGreaterThan(fields[i - 1].x + fields[i - 1].width);
     }
+  });
+});
+
+describe('background shape', () => {
+  const sizes: [number, number][] = [
+    [4000, 3000], // landscape
+    [3000, 4000], // portrait
+    [3000, 3000], // square
+    [6000, 1000], // very wide
+    [1000, 6000], // very tall
+  ];
+
+  it.each(SHEET_RATIOS.filter((id) => id !== 'auto'))('gives the sheet a %s shape around any artwork', (id) => {
+    const ratio = sheetRatioValue(id)!;
+    for (const [w, h] of sizes) {
+      const auto = computeLayout(w, h, FULL, measure);
+      const layout = computeLayout(w, h, FULL, measure, ratio);
+      // Exact shape, to the pixel.
+      expect(Math.abs(layout.sheetWidth / layout.sheetHeight - ratio)).toBeLessThan(1 / Math.min(layout.sheetWidth, layout.sheetHeight));
+      // Only ever grows: automatic margins are the minimum.
+      expect(layout.sheetWidth).toBeGreaterThanOrEqual(auto.sheetWidth);
+      expect(layout.sheetHeight).toBeGreaterThanOrEqual(auto.sheetHeight);
+      expect(layout.sheetWidth === auto.sheetWidth || layout.sheetHeight === auto.sheetHeight).toBe(true);
+      // Artwork unchanged in size, centred left-right.
+      expect(layout.artwork.width).toBe(w);
+      expect(layout.artwork.height).toBe(h);
+      const left = layout.artwork.x;
+      const right = layout.sheetWidth - left - w;
+      expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
+      // Optical centre: top and bottom space keep the automatic 0.16 : 0.25 proportion.
+      const top = layout.artwork.y;
+      const bottom = layout.sheetHeight - (layout.metadata.y + LAYOUT.fontSize * w * LAYOUT.lineHeight);
+      expect(top / (top + bottom)).toBeCloseTo(LAYOUT.topMargin / (LAYOUT.topMargin + LAYOUT.bottomMargin), 2);
+      expect(top).toBeLessThan(bottom);
+      // Details stay directly under the artwork, exactly as wide.
+      expect(layout.metadata.y - (layout.artwork.y + h)).toBe(Math.round(LAYOUT.metadataGap * w));
+      expect(layout.metadata.fields[0].x).toBe(left);
+      const last = layout.metadata.fields.at(-1)!;
+      expect(last.x + last.width).toBeCloseTo(left + w, 6);
+    }
+  });
+
+  it('leaves the automatic layout unchanged', () => {
+    expect(computeLayout(4000, 3000, FULL, measure, sheetRatioValue('auto'))).toEqual(computeLayout(4000, 3000, FULL, measure));
   });
 });

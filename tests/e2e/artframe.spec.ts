@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { computeLayout } from '../../src/services/layout-engine';
+import { computeLayout, sheetRatioValue } from '../../src/services/layout-engine';
 import { EMPTY_METADATA } from '../../src/types/artwork';
 import {
   decodeImage,
@@ -30,6 +30,14 @@ test.afterEach(() => {
   expect(problems, 'console errors / CSP violations').toEqual([]);
 });
 
+/** From the Details step, through Background (left on Automatic), to Preview and Download. */
+async function toDownloadStep(page: Page) {
+  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await expect(page.getByRole('heading', { name: 'Background Shape' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await expect(page.getByRole('heading', { name: 'Preview and Download' })).toBeVisible();
+}
+
 async function toPreview(page: Page) {
   await page.getByRole('button', { name: 'Use this crop' }).click();
   await expect(page.getByRole('heading', { name: 'Artwork Details' })).toBeVisible();
@@ -43,7 +51,7 @@ test('PNG export copies the artwork pixel-for-pixel and justifies the metadata t
   await toPreview(page);
   await fillDetails(page, FULL_DETAILS);
   await waitForSaved(page);
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
 
   const { download: dl, bytes } = await download(page, 'PNG');
   expect(dl.suggestedFilename()).toBe('2017_Untitled_Drypoint.png');
@@ -108,7 +116,7 @@ test('JPG, JPEG and PDF exports have the right names, size and contents', async 
   await uploadNew(page, { name: 'photo.png', mimeType: 'image/png', buffer: await makeImage(page, W, H, 'image/png') });
   await toPreview(page);
   await fillDetails(page, { Title: 'Blue Hour', Year: '2024', Medium: 'Oil on linen' });
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
   const geo = expectedGeometry(W, H);
 
   for (const format of ['JPG', 'JPEG'] as const) {
@@ -138,7 +146,7 @@ test('every aspect ratio crops correctly, and the ratio can be changed after ent
   await uploadNew(page, { name: 'wide.png', mimeType: 'image/png', buffer: await makeImage(page, W, H, 'image/png') });
   await waitForSaved(page);
   const [initial] = await storedProjects(page);
-  expect(initial.aspectRatio).toBe('original');
+  expect(initial.aspectRatio).toBe('free');
   expect(initial.crop).toEqual({ x: 0, y: 0, width: W, height: H });
 
   const ratios: [string, number][] = [
@@ -188,7 +196,7 @@ test('every aspect ratio crops correctly, and the ratio can be changed after ent
   expect(project.metadata).toEqual({ edition: '1/10', medium: 'Drypoint', size: '25×15cm', title: 'Untitled', year: '2017' });
 
   // The export follows the new crop.
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
   const { bytes } = await download(page, 'PNG');
   const geo = expectedGeometry(project.crop.width, project.crop.height);
   const out = await decodeImage(page, bytes, 'image/png', { x: 0, y: 0, width: 1, height: 1 });
@@ -205,7 +213,7 @@ test('phone photos with EXIF rotation come out upright, rotated exactly once', a
   expect([project.image.width, project.image.height]).toEqual([100, 200]);
 
   await toPreview(page);
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
   const { bytes } = await download(page, 'PNG');
   const geo = expectedGeometry(100, 200);
   const out = await decodeImage(page, bytes, 'image/png');
@@ -259,12 +267,12 @@ test('details that cannot fit on one line show a warning and block download', as
   await toPreview(page);
   await fillDetails(page, { ...FULL_DETAILS, Title: 'An extraordinarily long title '.repeat(6) });
   await expect(page.getByText('too long to fit on one line')).toBeVisible();
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
   await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Edit details' }).click();
   await fillDetails(page, { Title: 'Short' });
   await expect(page.getByText('too long to fit on one line')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
   await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeEnabled();
 });
 
@@ -333,7 +341,7 @@ test('large pictures export at full size', async ({ page }) => {
   await uploadNew(page, { name: 'big.png', mimeType: 'image/png', buffer: await makeImage(page, W, H, 'image/png', 'halves') });
   await toPreview(page);
   await fillDetails(page, FULL_DETAILS);
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
   const { bytes } = await download(page, 'PNG');
   const geo = expectedGeometry(W, H);
   // Read a band across the red/blue boundary at the bottom of the artwork: a resampled
@@ -353,7 +361,7 @@ test('metadata text crossing a PNG strip boundary matches a whole-sheet render',
   await uploadNew(page, { name: 'band.png', mimeType: 'image/png', buffer: await makeImage(page, W, H, 'image/png', 'halves') });
   await toPreview(page);
   await fillDetails(page, FULL_DETAILS);
-  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  await toDownloadStep(page);
   const geo = expectedGeometry(W, H);
   const boundary = Math.floor(4_000_000 / geo.sheetWidth) * 2;
   expect(boundary).toBeGreaterThan(geo.metadata.y);
@@ -370,4 +378,64 @@ test('metadata text crossing a PNG strip boundary matches a whole-sheet render',
   }
   expect(dark).toBeGreaterThan(500); // text is really there
   expect(maxDiff).toBeLessThan(48); // only JPEG noise, no seam or shift at the strip boundary
+});
+
+test('the background shape can be chosen after the details, and changed again later', async ({ page }) => {
+  const W = 1200;
+  const H = 800;
+  const source = await makeImage(page, W, H, 'image/png');
+  await uploadNew(page, { name: 'scan.png', mimeType: 'image/png', buffer: source });
+  await toPreview(page);
+  await fillDetails(page, FULL_DETAILS);
+  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await expect(page.getByRole('button', { name: 'Automatic' })).toHaveAttribute('aria-pressed', 'true');
+
+  // A portrait background around a landscape artwork.
+  await page.getByRole('button', { name: '4:5', exact: true }).click();
+  await expect(page.getByRole('button', { name: '4:5', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () => (await storedProjects(page))[0].sheetRatio).toBe('4:5');
+  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+
+  const preview = await page.locator('.preview-canvas').evaluate((c: HTMLCanvasElement) => c.width / c.height);
+  expect(preview).toBeCloseTo(0.8, 2);
+
+  const { download: dl, bytes } = await download(page, 'PNG');
+  expect(dl.suggestedFilename()).toBe('2017_Untitled_Drypoint.png');
+  const geo = computeLayout(W, H, { edition: '', medium: '', size: '', title: '', year: '' }, () => 0, sheetRatioValue('4:5'));
+  const out = await decodeImage(page, bytes, 'image/png');
+  expect([out.width, out.height]).toEqual([geo.sheetWidth, geo.sheetHeight]);
+  expect(out.width / out.height).toBeCloseTo(0.8, 3);
+  // Artwork still pixel-exact, centred left-right, above the middle.
+  const src = await decodeImage(page, source, 'image/png');
+  let mismatches = 0;
+  for (let y = 0; y < H; y += 7) {
+    for (let x = 0; x < W; x += 5) {
+      const a = src.px(x, y);
+      const b = out.px(geo.artwork.x + x, geo.artwork.y + y);
+      if (a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2]) mismatches++;
+    }
+  }
+  expect(mismatches).toBe(0);
+  expect(Math.abs(geo.artwork.x - (out.width - geo.artwork.x - W))).toBeLessThanOrEqual(1);
+  expect(geo.artwork.y + H / 2).toBeLessThan(out.height / 2);
+  const isWhite = (p: number[]) => p[0] === 255 && p[1] === 255 && p[2] === 255;
+  expect(isWhite(out.px(5, 5))).toBe(true);
+  expect(isWhite(out.px(out.width - 5, out.height - 5))).toBe(true);
+
+  // Change the crop afterwards: the background shape is kept.
+  await page.getByRole('button', { name: 'Change crop' }).click();
+  await expect(page.getByRole('button', { name: 'Use this crop' })).toBeEnabled();
+  await page.getByRole('button', { name: '16:9', exact: true }).click();
+  await page.getByRole('button', { name: 'Use this crop' }).click();
+  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await expect(page.getByRole('button', { name: '4:5', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+  // And back to Automatic.
+  await page.getByRole('button', { name: 'Automatic' }).click();
+  await expect.poll(async () => (await storedProjects(page))[0].sheetRatio).toBe('auto');
+  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  const auto = await decodeImage(page, (await download(page, 'PNG')).bytes, 'image/png', { x: 0, y: 0, width: 1, height: 1 });
+  const crop = (await storedProjects(page))[0].crop;
+  const autoGeo = computeLayout(crop.width, crop.height, { edition: '', medium: '', size: '', title: '', year: '' }, () => 0);
+  expect([auto.width, auto.height]).toEqual([autoGeo.sheetWidth, autoGeo.sheetHeight]);
 });

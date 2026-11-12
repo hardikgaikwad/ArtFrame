@@ -6,7 +6,7 @@ artwork documentation sheet: the artwork centred on a white sheet, with its deta
 
 Everything happens in the browser. Pictures are never uploaded anywhere.
 
-**Workflow:** Upload → Crop → Details → Preview and Download. Work is saved
+**Workflow:** Upload → Crop → Details → Background → Preview and Download. Work is saved
 automatically in the browser, and any number of artworks can be kept and reopened.
 
 ---
@@ -81,6 +81,12 @@ src/
 
 Key decisions:
 
+- **Background shape.** The crop is free-form by default; the white background's shape is a
+  separate choice after Details: Automatic (fitted to the artwork), 4:5, 5:4, 3:4, 4:3, 2:3 or 3:2.
+  A fixed shape only *enlarges* the automatic sheet (its margins are the minimum), so the artwork
+  is never resized. Extra width is split equally; extra height keeps the automatic top : bottom
+  proportion (0.16 : 0.25), which holds the artwork at the optical centre, slightly above the middle.
+  Saved in each project as `sheetRatio` (older projects without it are Automatic).
 - **One layout, two renderings.** `layout-engine.ts` computes the sheet in full-resolution
   pixels. Preview and export both call the same drawing function
   (`composition-engine.ts › drawSheetBand`); the preview just applies a scale. All layout

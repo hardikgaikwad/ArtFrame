@@ -12,7 +12,7 @@ export type MetadataField = (typeof METADATA_FIELDS)[number];
 
 export const EMPTY_METADATA: ArtworkMetadata = { edition: '', medium: '', size: '', title: '', year: '' };
 
-export const ASPECT_RATIOS = ['original', 'free', '16:9', '9:16', '3:4', '4:3', '5:4', '4:5'] as const;
+export const ASPECT_RATIOS = ['free', 'original', '16:9', '9:16', '3:4', '4:3', '5:4', '4:5'] as const;
 export type AspectRatioId = (typeof ASPECT_RATIOS)[number];
 
 /** Integer pixel rectangle in the upright (EXIF-oriented) full-resolution image. */

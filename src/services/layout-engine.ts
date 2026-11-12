@@ -5,6 +5,7 @@ import { METADATA_FIELDS, type ArtworkMetadata } from '../types/artwork';
  * width (W), so the sheet scales with the artwork and the preview is an exact miniature
  * of the export. Recalibrate the composition here; the renderer reads nothing else.
  * Sheet width is W + 2 × artworkX × W (1.5 W, so the artwork fills two thirds of it).
+ * These are also the minimum margins when the artist picks a fixed background shape.
  */
 export const LAYOUT = {
   artworkX: 0.25,
@@ -45,6 +46,17 @@ export interface SheetLayout {
   };
 }
 
+/** Background shapes offered after the Details step. 'auto' fits the sheet to the artwork. */
+export const SHEET_RATIOS = ['auto', '4:5', '5:4', '3:4', '4:3', '2:3', '3:2'] as const;
+export type SheetRatioId = (typeof SHEET_RATIOS)[number];
+
+/** Width ÷ height of the background, or null for 'auto'. */
+export function sheetRatioValue(id: SheetRatioId): number | null {
+  if (id === 'auto') return null;
+  const [w, h] = id.split(':').map(Number);
+  return w / h;
+}
+
 export function metadataValues(metadata: ArtworkMetadata): string[] {
   return METADATA_FIELDS.map((field) => metadata[field].trim()).filter((value) => value.length > 0);
 }
@@ -52,21 +64,42 @@ export function metadataValues(metadata: ArtworkMetadata): string[] {
 /**
  * Lays out the sheet for an artwork crop of `artworkWidth` × `artworkHeight` pixels.
  * The artwork sits at integer coordinates at its own size: it is drawn 1:1, never resampled.
+ *
+ * With a fixed `sheetRatio`, the automatic sheet is enlarged in one direction until it has
+ * that shape (never shrunk, so the automatic margins are the minimum). Extra width is split
+ * equally left and right; extra height is split in the same top : bottom proportion as the
+ * automatic margins, which keeps the artwork at the optical centre, slightly above the middle.
  */
 export function computeLayout(
   artworkWidth: number,
   artworkHeight: number,
   metadata: ArtworkMetadata,
   measure: MeasureText,
+  sheetRatio: number | null = null,
 ): SheetLayout {
   const W = artworkWidth;
-  const artX = Math.round(LAYOUT.artworkX * W);
-  const artY = Math.round(LAYOUT.topMargin * W);
   const baseFont = LAYOUT.fontSize * W;
-  const textY = artY + artworkHeight + Math.round(LAYOUT.metadataGap * W);
-  const sheetHeight = Math.round(textY + baseFont * LAYOUT.lineHeight + LAYOUT.bottomMargin * W);
-  // Equal side margins: sheet = artwork + 2 × left margin (= 1.5 W up to rounding).
-  const sheetWidth = W + 2 * artX;
+  const gap = Math.round(LAYOUT.metadataGap * W);
+
+  // Automatic sheet: equal side margins (sheet = 1.5 W up to rounding).
+  let artX = Math.round(LAYOUT.artworkX * W);
+  let artY = Math.round(LAYOUT.topMargin * W);
+  let sheetWidth = W + 2 * artX;
+  let sheetHeight = Math.round(artY + artworkHeight + gap + baseFont * LAYOUT.lineHeight + LAYOUT.bottomMargin * W);
+
+  if (sheetRatio) {
+    if (sheetWidth / sheetHeight < sheetRatio) {
+      const wider = Math.round(sheetHeight * sheetRatio);
+      artX += Math.floor((wider - sheetWidth) / 2);
+      sheetWidth = wider;
+    } else {
+      const taller = Math.round(sheetWidth / sheetRatio);
+      const topShare = LAYOUT.topMargin / (LAYOUT.topMargin + LAYOUT.bottomMargin);
+      artY += Math.round((taller - sheetHeight) * topShare);
+      sheetHeight = taller;
+    }
+  }
+  const textY = artY + artworkHeight + gap;
 
   const { fontSize, fields, overflow } = justify(
     metadataValues(metadata),

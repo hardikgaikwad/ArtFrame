@@ -1,7 +1,7 @@
 import { createPreviewSource, drawWholeSheet, type DrawSource } from '../services/composition-engine';
 import { defaultCrop } from '../services/crop-service';
 import { decodeImage, type DecodedImage, type LoadedUpload } from '../services/image-loader';
-import { computeLayout, type SheetLayout } from '../services/layout-engine';
+import { computeLayout, sheetRatioValue, type SheetLayout, type SheetRatioId } from '../services/layout-engine';
 import {
   getAssets,
   getProject,
@@ -18,8 +18,8 @@ import { releaseCanvas } from '../utils/memory-manager';
 import { measureText } from '../utils/text-measurement';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
-export type EditorStep = 'upload' | 'crop' | 'details' | 'preview';
-export type SessionChange = 'image' | 'crop' | 'metadata' | 'save' | 'step';
+export type EditorStep = 'upload' | 'crop' | 'details' | 'sheet' | 'preview';
+export type SessionChange = 'image' | 'crop' | 'metadata' | 'sheet' | 'save' | 'step';
 
 const AUTOSAVE_DELAY_MS = 600;
 const THUMBNAIL_WIDTH = 360;
@@ -71,7 +71,8 @@ export class EditorSession {
         id: newProjectId(),
         name: '',
         metadata: { ...EMPTY_METADATA },
-        aspectRatio: 'original',
+        aspectRatio: 'free',
+        sheetRatio: 'auto',
         crop: null,
         image: null,
         createdAt: now,
@@ -141,9 +142,13 @@ export class EditorSession {
   layout(): SheetLayout | null {
     const crop = this.crop;
     if (!crop) return null;
-    const key = JSON.stringify([crop.width, crop.height, this.project.metadata]);
+    const ratio = sheetRatioValue(this.sheetRatio);
+    const key = JSON.stringify([crop.width, crop.height, ratio, this.project.metadata]);
     if (this.cachedLayout?.key !== key) {
-      this.cachedLayout = { key, layout: computeLayout(crop.width, crop.height, this.project.metadata, measureText) };
+      this.cachedLayout = {
+        key,
+        layout: computeLayout(crop.width, crop.height, this.project.metadata, measureText, ratio),
+      };
     }
     return this.cachedLayout.layout;
   }
@@ -179,6 +184,17 @@ export class EditorSession {
     this.project.metadata[field] = value;
     this.touch();
     this.emit('metadata');
+  }
+
+  get sheetRatio(): SheetRatioId {
+    return this.project.sheetRatio ?? 'auto';
+  }
+
+  setSheetRatio(sheetRatio: SheetRatioId): void {
+    if (this.sheetRatio === sheetRatio) return;
+    this.project.sheetRatio = sheetRatio;
+    this.touch();
+    this.emit('sheet');
   }
 
   setAspectRatio(aspectRatio: AspectRatioId, crop: CropRect): void {

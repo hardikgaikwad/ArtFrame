@@ -73,7 +73,7 @@ export function createPreviewStep(session: EditorSession): StepView {
     downloadBtn.disabled = overflow || busy;
   }
   const unsubscribe = session.subscribe((change) => {
-    if (change === 'metadata' || change === 'crop') refreshAvailability();
+    if (change === 'metadata' || change === 'crop' || change === 'sheet') refreshAvailability();
   });
 
   async function runExport(scale: number, format = selectedFormat()) {
@@ -198,6 +198,7 @@ export function createPreviewStep(session: EditorSession): StepView {
         h(
           'div',
           { class: 'toolbar' },
+          button('Change background', () => session.setStep('sheet'), { class: 'btn' }),
           button('Edit details', () => session.setStep('details'), { class: 'btn' }),
           button('Change crop', () => session.setStep('crop'), { class: 'btn' }),
         ),

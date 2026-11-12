@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// End-to-end tests run against the production build (`vite preview`), which also
+// End-to-end tests run against the production build (`vite preview` on port 4174, so a
+// preview server on the default 4173 for device testing can keep running), which also
 // serves the production security headers, so CSP problems surface here.
 export default defineConfig({
   testDir: './tests/e2e',
@@ -9,12 +10,12 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: 'http://localhost:4174',
     acceptDownloads: true,
   },
   webServer: {
-    command: 'npm run build && npx vite preview --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    command: 'npm run build && npx vite preview --port 4174 --strictPort',
+    url: 'http://localhost:4174',
     reuseExistingServer: false,
     timeout: 180_000,
   },

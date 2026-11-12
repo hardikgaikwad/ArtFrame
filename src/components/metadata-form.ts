@@ -67,7 +67,7 @@ export function createDetailsStep(session: EditorSession, onContinue: () => void
       { class: 'toolbar' },
       button('Change crop', () => session.setStep('crop'), { class: 'btn' }),
       h('span', { class: 'toolbar-spacer' }),
-      h('button', { type: 'submit', class: 'btn btn-primary' }, 'Continue to Preview'),
+      h('button', { type: 'submit', class: 'btn btn-primary' }, 'Continue to Background'),
     ),
   );
   form.addEventListener('submit', (event) => {

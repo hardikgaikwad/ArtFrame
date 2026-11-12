@@ -1,6 +1,7 @@
 import { createCropStep } from '../components/crop-editor';
 import { createPreviewStep } from '../components/export-controls';
 import { createDetailsStep } from '../components/metadata-form';
+import { createSheetStep } from '../components/sheet-shape';
 import { displayName } from '../components/project-library';
 import { createUploadStep, type StepView } from '../components/upload';
 import { button, h } from '../utils/dom';
@@ -10,6 +11,7 @@ const STEPS: { step: EditorStep; label: string; short: string }[] = [
   { step: 'upload', label: 'Upload', short: 'Upload' },
   { step: 'crop', label: 'Crop', short: 'Crop' },
   { step: 'details', label: 'Details', short: 'Details' },
+  { step: 'sheet', label: 'Background', short: 'Layout' },
   { step: 'preview', label: 'Preview and Download', short: 'Download' },
 ];
 
@@ -28,7 +30,7 @@ export function createEditor(session: EditorSession, onClose: () => void): StepV
       'button',
       { type: 'button', class: 'step-tab', 'aria-label': `${i + 1}. ${label}` },
       h('span', { class: 'step-tab-long' }, `${i + 1}. ${label}`),
-      h('span', { class: 'step-tab-short', 'aria-hidden': 'true' }, `${i + 1}. ${short}`),
+      h('span', { class: 'step-tab-short', 'aria-hidden': 'true' }, short),
     );
     tab.addEventListener('click', () => session.setStep(step));
     return tab;
@@ -78,7 +80,10 @@ export function createEditor(session: EditorSession, onClose: () => void): StepV
         current = createCropStep(session, goto('details'));
         break;
       case 'details':
-        current = createDetailsStep(session, goto('preview'));
+        current = createDetailsStep(session, goto('sheet'));
+        break;
+      case 'sheet':
+        current = createSheetStep(session, goto('preview'));
         break;
       case 'preview':
         current = createPreviewStep(session);

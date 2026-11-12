@@ -39,7 +39,7 @@ export function createArtworkPreview(session: EditorSession, options: { maxHeigh
     if (!frame) frame = requestAnimationFrame(draw);
   };
   const unsubscribe = session.subscribe((change) => {
-    if (change === 'metadata' || change === 'crop' || change === 'image') schedule();
+    if (change === 'metadata' || change === 'crop' || change === 'sheet' || change === 'image') schedule();
   });
   const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null;
   resizeObserver?.observe(el);

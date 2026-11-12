@@ -1,3 +1,4 @@
+import type { SheetRatioId } from '../services/layout-engine';
 import type { ArtworkMetadata, AspectRatioId, CropRect, ImageInfo } from './artwork';
 
 /** Small, frequently updated project record (the `projects` object store). */
@@ -6,7 +7,10 @@ export interface Project {
   /** Library display name; the library falls back to the title when empty. */
   name: string;
   metadata: ArtworkMetadata;
+  /** Shape of the crop. */
   aspectRatio: AspectRatioId;
+  /** Shape of the white background. Missing in projects saved before this option existed. */
+  sheetRatio?: SheetRatioId;
   crop: CropRect | null;
   image: ImageInfo | null;
   createdAt: number;

@@ -450,12 +450,12 @@
 
   .step-tabs {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     margin-bottom: var(--space-4);
   }
 
   .step-tab {
-    padding: var(--space-2) var(--space-1);
+    padding: var(--space-2) 2px;
     font-size: 14px;
   }
 
@@ -467,6 +467,24 @@
   .segmented-option {
     min-width: 0;
     padding: var(--space-2) var(--space-1);
+  }
+
+  /* Background step: "Automatic" gets two cells; preview comes right after the choices
+     so the effect of a tap is visible without scrolling. */
+  .segmented-sheet .segmented-option:first-child {
+    grid-column: span 2;
+  }
+
+  .step-sheet .details-form {
+    display: contents;
+  }
+
+  .step-sheet .split-preview {
+    order: 1;
+  }
+
+  .step-sheet .details-form > .toolbar {
+    order: 2;
   }
 
   .step-heading {
