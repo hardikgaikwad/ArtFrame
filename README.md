@@ -82,11 +82,12 @@ src/
 Key decisions:
 
 - **Background shape.** The crop is free-form by default; the white background's shape is a
-  separate choice after Details: Automatic (fitted to the artwork), 4:5, 5:4, 3:4, 4:3, 2:3, 3:2,
-  16:9 or 9:16. A fixed shape only *enlarges* the automatic sheet (its margins are the minimum), so
+  separate choice after Details: Automatic (fitted to the artwork), 1:1, 4:5, 5:4, 3:4, 4:3, 2:3,
+  3:2, 16:9 or 9:16. A fixed shape only *enlarges* the automatic sheet (its margins are the minimum), so
   the artwork is never resized. The artwork is centred left to right, and the artwork-and-details
   block is placed at the visual centre: its middle at 46% of the height (`LAYOUT.visualCentre`),
-  slightly above the true middle, as in picture framing.
+  slightly above the true middle, as in picture framing. Portrait backgrounds use 48%
+  (`LAYOUT.visualCentrePortrait`), because the larger space above and below makes 46% look high.
   Saved in each project as `sheetRatio` (older projects without it are Automatic).
 - **One layout, two renderings.** `layout-engine.ts` computes the sheet in full-resolution
   pixels. Preview and export both call the same drawing function

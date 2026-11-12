@@ -6,6 +6,7 @@ import type { StepView } from './upload';
 
 const LABELS: Record<SheetRatioId, string> = {
   auto: 'Automatic',
+  '1:1': '1:1',
   '4:5': '4:5',
   '5:4': '5:4',
   '3:4': '3:4',

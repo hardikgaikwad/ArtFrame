@@ -159,8 +159,15 @@ describe('background shape', () => {
       expect(top).toBeGreaterThanOrEqual(auto.artwork.y);
       expect(bottom).toBeGreaterThanOrEqual(auto.sheetHeight - (auto.metadata.y + LAYOUT.fontSize * w * LAYOUT.lineHeight) - 1);
       if (layout.sheetHeight > auto.sheetHeight) {
-        // Taller background: block middle at exactly LAYOUT.visualCentre of the height.
-        expect(Math.abs((top + blockBottom) / 2 - LAYOUT.visualCentre * layout.sheetHeight)).toBeLessThanOrEqual(1);
+        // Taller background: block middle at exactly the visual centre of the height
+        // (a little lower on portrait backgrounds).
+        // The minimum (automatic) top margin wins when the background grows only slightly.
+        const centre = ratio < 1 ? LAYOUT.visualCentrePortrait : LAYOUT.visualCentre;
+        if (top > auto.artwork.y) {
+          expect(Math.abs((top + blockBottom) / 2 - centre * layout.sheetHeight)).toBeLessThanOrEqual(1);
+        } else {
+          expect((top + blockBottom) / 2).toBeGreaterThan(centre * layout.sheetHeight);
+        }
       } else {
         // Wider background: same vertical placement as Automatic.
         expect(top).toBe(auto.artwork.y);
@@ -175,5 +182,17 @@ describe('background shape', () => {
 
   it('leaves the automatic layout unchanged', () => {
     expect(computeLayout(4000, 3000, FULL, measure, sheetRatioValue('auto'))).toEqual(computeLayout(4000, 3000, FULL, measure));
+  });
+});
+
+describe('visual centre by background orientation', () => {
+  it('places the artwork lower on portrait backgrounds than on square or landscape ones', () => {
+    // A wide artwork, so every shape below makes the background taller.
+    const mid = (id: Parameters<typeof sheetRatioValue>[0]) => {
+      const l = computeLayout(4000, 1000, FULL, measure, sheetRatioValue(id));
+      return (l.artwork.y + l.metadata.y + LAYOUT.fontSize * 4000 * LAYOUT.lineHeight) / 2 / l.sheetHeight;
+    };
+    for (const portrait of ['4:5', '3:4', '2:3', '9:16'] as const) expect(mid(portrait)).toBeCloseTo(0.48, 3);
+    for (const other of ['1:1', '5:4', '4:3'] as const) expect(mid(other)).toBeCloseTo(0.46, 3);
   });
 });
