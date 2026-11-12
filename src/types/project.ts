@@ -11,6 +11,8 @@ export interface Project {
   aspectRatio: AspectRatioId;
   /** Shape of the white background. Missing in projects saved before this option existed. */
   sheetRatio?: SheetRatioId;
+  /** Artwork size on the background (1 = default). Missing in older projects. */
+  artworkScale?: number;
   crop: CropRect | null;
   image: ImageInfo | null;
   createdAt: number;

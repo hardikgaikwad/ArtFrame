@@ -449,3 +449,60 @@ test('the background shape can be chosen after the details, and changed again la
   const autoGeo = computeLayout(crop.width, crop.height, { edition: '', medium: '', size: '', title: '', year: '' }, () => 0);
   expect([auto.width, auto.height]).toEqual([autoGeo.sheetWidth, autoGeo.sheetHeight]);
 });
+
+test('the artwork size can be changed on the background without touching the artwork pixels', async ({ page }) => {
+  const W = 1200;
+  const H = 800;
+  const source = await makeImage(page, W, H, 'image/png');
+  await uploadNew(page, { name: 'scan.png', mimeType: 'image/png', buffer: source });
+  await toPreview(page);
+  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await page.getByRole('button', { name: '4:5', exact: true }).click();
+
+  const slider = page.getByRole('slider', { name: 'Size of artwork' });
+  await expect(slider).toHaveValue('100');
+  await expect(page.getByRole('button', { name: 'Reset size' })).toBeDisabled();
+
+  // + and − move in 5% steps; the slider follows.
+  await page.getByRole('button', { name: 'Make artwork larger' }).click();
+  await page.getByRole('button', { name: 'Make artwork larger' }).click();
+  await expect(slider).toHaveValue('110');
+  await page.getByRole('button', { name: 'Make artwork smaller' }).click();
+  await expect(slider).toHaveValue('105');
+  await expect(page.locator('.size-value')).toHaveText('105%');
+  await expect.poll(async () => (await storedProjects(page))[0].artworkScale).toBe(1.05);
+
+  // Dragging the slider; the smallest size is the slider's minimum.
+  await slider.fill('60');
+  await expect(page.locator('.size-value')).toHaveText('60%');
+  await expect(page.getByRole('button', { name: 'Make artwork smaller' })).toBeDisabled();
+  await slider.fill('120');
+  await expect.poll(async () => (await storedProjects(page))[0].artworkScale).toBe(1.2);
+
+  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  const { bytes } = await download(page, 'PNG');
+  const geo = computeLayout(W, H, EMPTY_METADATA, () => 0, sheetRatioValue('4:5'), 1.2);
+  const base = computeLayout(W, H, EMPTY_METADATA, () => 0, sheetRatioValue('4:5'));
+  const out = await decodeImage(page, bytes, 'image/png');
+  expect([out.width, out.height]).toEqual([geo.sheetWidth, geo.sheetHeight]);
+  expect(out.width).toBeLessThan(base.sheetWidth);
+  expect(out.width / out.height).toBeCloseTo(0.8, 3);
+  const src = await decodeImage(page, source, 'image/png');
+  let mismatches = 0;
+  for (let y = 0; y < H; y += 7) {
+    for (let x = 0; x < W; x += 5) {
+      const a = src.px(x, y);
+      const b = out.px(geo.artwork.x + x, geo.artwork.y + y);
+      if (a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2]) mismatches++;
+    }
+  }
+  expect(mismatches).toBe(0);
+
+  // Kept after a reload, and Reset goes back to 100%.
+  await page.reload();
+  await page.getByRole('button', { name: 'Open' }).first().click();
+  await page.getByRole('button', { name: 'Continue to Background' }).click();
+  await expect(slider).toHaveValue('120');
+  await page.getByRole('button', { name: 'Reset size' }).click();
+  await expect(slider).toHaveValue('100');
+});

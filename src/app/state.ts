@@ -143,11 +143,12 @@ export class EditorSession {
     const crop = this.crop;
     if (!crop) return null;
     const ratio = sheetRatioValue(this.sheetRatio);
-    const key = JSON.stringify([crop.width, crop.height, ratio, this.project.metadata]);
+    const scale = this.artworkScale;
+    const key = JSON.stringify([crop.width, crop.height, ratio, scale, this.project.metadata]);
     if (this.cachedLayout?.key !== key) {
       this.cachedLayout = {
         key,
-        layout: computeLayout(crop.width, crop.height, this.project.metadata, measureText, ratio),
+        layout: computeLayout(crop.width, crop.height, this.project.metadata, measureText, ratio, scale),
       };
     }
     return this.cachedLayout.layout;
@@ -188,6 +189,19 @@ export class EditorSession {
 
   get sheetRatio(): SheetRatioId {
     return this.project.sheetRatio ?? 'auto';
+  }
+
+  get artworkScale(): number {
+    return this.project.artworkScale ?? 1;
+  }
+
+  /** Stored as chosen; the layout limits it to what fits this artwork and background. */
+  setArtworkScale(scale: number): void {
+    const rounded = Math.round(scale * 100) / 100;
+    if (this.artworkScale === rounded) return;
+    this.project.artworkScale = rounded;
+    this.touch();
+    this.emit('sheet');
   }
 
   setSheetRatio(sheetRatio: SheetRatioId): void {

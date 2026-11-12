@@ -196,3 +196,66 @@ describe('visual centre by background orientation', () => {
     for (const other of ['1:1', '5:4', '4:3'] as const) expect(mid(other)).toBeCloseTo(0.46, 3);
   });
 });
+
+describe('size of artwork', () => {
+  const sizes: [number, number][] = [[4000, 3000], [3000, 4000], [3000, 3000], [6000, 1000], [1000, 6000]];
+  const shapes = [null, ...SHEET_RATIOS.filter((id) => id !== 'auto').map((id) => sheetRatioValue(id))];
+
+  it('leaves the layout unchanged at 100%', () => {
+    for (const ratio of shapes) {
+      const base = computeLayout(4000, 3000, FULL, measure, ratio);
+      expect(computeLayout(4000, 3000, FULL, measure, ratio, 1)).toEqual(base);
+      expect(base.scale.value).toBe(1);
+    }
+  });
+
+  it('shrinks or grows the background around the unchanged artwork, keeping its shape', () => {
+    for (const [w, h] of sizes) {
+      for (const ratio of shapes) {
+        const base = computeLayout(w, h, FULL, measure, ratio);
+        // A tall artwork on an automatic background has little room to grow.
+        for (const scale of [0.6, 0.8, 1.1, base.scale.max].filter((s) => s <= base.scale.max)) {
+          const layout = computeLayout(w, h, FULL, measure, ratio, scale);
+          expect(layout.scale.value).toBe(scale);
+          // Artwork drawn 1:1 at whole pixels, centred left to right.
+          expect([layout.artwork.width, layout.artwork.height]).toEqual([w, h]);
+          expect(Number.isInteger(layout.artwork.x) && Number.isInteger(layout.artwork.y)).toBe(true);
+          expect(Math.abs(layout.sheetWidth - 2 * layout.artwork.x - w)).toBeLessThanOrEqual(1);
+          // Background divided by the scale.
+          expect(Math.abs(layout.sheetWidth - base.sheetWidth / scale)).toBeLessThanOrEqual(1);
+          if (ratio) {
+            expect(Math.abs(layout.sheetWidth / layout.sheetHeight - ratio)).toBeLessThan(1 / Math.min(layout.sheetWidth, layout.sheetHeight));
+          } else {
+            expect(Math.abs(layout.sheetHeight - base.sheetHeight / scale)).toBeLessThanOrEqual(1);
+          }
+          // Always some white on every side, and the details stay under the artwork.
+          const minMargin = Math.ceil(LAYOUT.minMargin * w);
+          const blockBottom = layout.metadata.y + LAYOUT.fontSize * w * LAYOUT.lineHeight;
+          expect(layout.artwork.x).toBeGreaterThanOrEqual(minMargin);
+          expect(layout.artwork.y).toBeGreaterThanOrEqual(minMargin);
+          expect(layout.sheetHeight - blockBottom).toBeGreaterThanOrEqual(minMargin - 1);
+          expect(layout.metadata.y - (layout.artwork.y + h)).toBe(Math.round(LAYOUT.metadataGap * w));
+          expect(layout.metadata.fields[0].x).toBe(layout.artwork.x);
+        }
+      }
+    }
+  });
+
+  it('keeps the block at the same relative height', () => {
+    const ratio = sheetRatioValue('4:5');
+    const middle = (scale: number) => {
+      const l = computeLayout(4000, 3000, FULL, measure, ratio, scale);
+      return (l.artwork.y + l.metadata.y + LAYOUT.fontSize * 4000 * LAYOUT.lineHeight) / 2 / l.sheetHeight;
+    };
+    expect(middle(0.7)).toBeCloseTo(middle(1), 3);
+    expect(middle(1.2)).toBeCloseTo(middle(1), 3);
+  });
+
+  it('limits the size to the allowed range', () => {
+    const base = computeLayout(4000, 3000, FULL, measure);
+    expect(base.scale.min).toBe(LAYOUT.minArtworkScale);
+    expect(base.scale.max).toBeGreaterThan(1);
+    expect(computeLayout(4000, 3000, FULL, measure, null, 0.1).scale.value).toBe(LAYOUT.minArtworkScale);
+    expect(computeLayout(4000, 3000, FULL, measure, null, 5).scale.value).toBe(base.scale.max);
+  });
+});

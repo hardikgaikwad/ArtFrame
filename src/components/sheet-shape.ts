@@ -31,10 +31,55 @@ export function createSheetStep(session: EditorSession, onContinue: () => void):
   function mark() {
     for (const [id, option] of options) option.setAttribute('aria-pressed', String(id === session.sheetRatio));
   }
+
+  // Size of artwork: a slider plus − / + buttons (5% steps). The range depends on the
+  // artwork and background shape, so it is read back from the layout after every change.
+  const percent = (scale: number) => Math.round(scale * 100);
+  const slider = h('input', { type: 'range', id: 'artwork-size', class: 'size-slider', step: 1 });
+  const value = h('output', { class: 'size-value', for: 'artwork-size', 'aria-live': 'polite' });
+  const nudge = (direction: 1 | -1) => {
+    const scale = session.layout()?.scale;
+    if (!scale) return;
+    const next = Math.round((scale.value + direction * 0.05) * 20) / 20;
+    session.setArtworkScale(Math.min(Math.max(next, scale.min), scale.max));
+  };
+  const smaller = button('−', () => nudge(-1), { class: 'btn size-step', 'aria-label': 'Make artwork smaller' });
+  const larger = button('+', () => nudge(1), { class: 'btn size-step', 'aria-label': 'Make artwork larger' });
+  const reset = button('Reset size', () => session.setArtworkScale(1), { class: 'btn btn-small' });
+  slider.addEventListener('input', () => session.setArtworkScale(Number(slider.value) / 100));
+
+  function syncSize() {
+    const scale = session.layout()?.scale;
+    if (!scale) return;
+    slider.min = String(percent(scale.min));
+    slider.max = String(percent(scale.max));
+    slider.value = String(percent(scale.value));
+    slider.setAttribute('aria-valuetext', `${percent(scale.value)}%`);
+    value.textContent = `${percent(scale.value)}%`;
+    smaller.disabled = percent(scale.value) <= percent(scale.min);
+    larger.disabled = percent(scale.value) >= percent(scale.max);
+    reset.disabled = percent(scale.value) === 100;
+  }
+
+  const sizeControl = h(
+    'div',
+    { class: 'size-control' },
+    h(
+      'div',
+      { class: 'size-heading' },
+      h('label', { class: 'field-label', for: 'artwork-size' }, 'Size of artwork'),
+      value,
+    ),
+    h('div', { class: 'size-row' }, smaller, slider, larger),
+    h('div', { class: 'size-footer' }, reset),
+  );
+
   const unsubscribe = session.subscribe((change) => {
     if (change === 'sheet') mark();
+    if (change === 'sheet' || change === 'crop' || change === 'metadata') syncSize();
   });
   mark();
+  syncSize();
 
   const el = h(
     'section',
@@ -53,6 +98,7 @@ export function createSheetStep(session: EditorSession, onContinue: () => void):
             'Automatic fits the background to your artwork.',
         ),
         group,
+        sizeControl,
         h(
           'div',
           { class: 'toolbar' },

@@ -89,6 +89,11 @@ Key decisions:
   slightly above the true middle, as in picture framing. Portrait backgrounds use 48%
   (`LAYOUT.visualCentrePortrait`), because the larger space above and below makes 46% look high.
   Saved in each project as `sheetRatio` (older projects without it are Automatic).
+- **Size of artwork.** A slider with − / + buttons (5% steps) and Reset, under the shapes. The
+  artwork is still drawn 1:1; instead the background is divided by the chosen size, keeping its
+  shape and the block's relative height. Range: 60% (`LAYOUT.minArtworkScale`) up to the size that
+  still leaves 5% of the artwork width of white on every side (`LAYOUT.minMargin`), usually about
+  130%. Smaller sizes make a larger file. Saved as `artworkScale` (default 1).
 - **One layout, two renderings.** `layout-engine.ts` computes the sheet in full-resolution
   pixels. Preview and export both call the same drawing function
   (`composition-engine.ts › drawSheetBand`); the preview just applies a scale. All layout

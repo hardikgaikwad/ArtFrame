@@ -309,6 +309,54 @@
   margin-bottom: var(--space-3);
 }
 
+/* Size of artwork */
+
+.size-control {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.size-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.size-heading .field-label {
+  margin-bottom: 0;
+}
+
+.size-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.size-step {
+  flex: 0 0 auto;
+  width: var(--touch);
+  padding: 0;
+  font-size: 22px;
+}
+
+.size-slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--touch);
+  margin: 0;
+  accent-color: var(--color-text);
+  touch-action: pan-y;
+}
+
+.size-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* Preview */
 
 .preview-frame {

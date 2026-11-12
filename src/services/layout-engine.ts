@@ -28,6 +28,13 @@ export const LAYOUT = {
    */
   visualCentre: 0.46,
   visualCentrePortrait: 0.48,
+  /**
+   * "Size of artwork" control: the artwork's size relative to the background (1 = default).
+   * The artwork itself is never resized; the background is made smaller or larger around it.
+   * The largest size always leaves at least `minMargin` × W of white on every side.
+   */
+  minArtworkScale: 0.6,
+  minMargin: 0.05,
   textColor: '#1a1a1a',
   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
 } as const;
@@ -44,6 +51,8 @@ export interface PlacedField {
 export interface SheetLayout {
   sheetWidth: number;
   sheetHeight: number;
+  /** Artwork size relative to the default layout, as applied, and the range allowed for this artwork. */
+  scale: { value: number; min: number; max: number };
   artwork: { x: number; y: number; width: number; height: number };
   metadata: {
     /** Top of the text line (draw with textBaseline = 'top'). */
@@ -79,6 +88,10 @@ export function metadataValues(metadata: ArtworkMetadata): string[] {
  * left to right, and the artwork-and-details block is placed at the visual centre
  * (LAYOUT.visualCentre of the height, or visualCentrePortrait for portrait backgrounds),
  * never closer to the edges than the automatic margins.
+ *
+ * `artworkScale` then zooms the composition: the background is divided by the scale (keeping
+ * its shape) and the block keeps its relative position, so the artwork looks larger or
+ * smaller on the background while staying pixel-for-pixel identical.
  */
 export function computeLayout(
   artworkWidth: number,
@@ -86,6 +99,7 @@ export function computeLayout(
   metadata: ArtworkMetadata,
   measure: MeasureText,
   sheetRatio: number | null = null,
+  artworkScale = 1,
 ): SheetLayout {
   const W = artworkWidth;
   const baseFont = LAYOUT.fontSize * W;
@@ -112,6 +126,24 @@ export function computeLayout(
       sheetHeight = taller;
     }
   }
+
+  const block = artworkHeight + gap + baseFont * LAYOUT.lineHeight;
+  const minMargin = Math.ceil(LAYOUT.minMargin * W);
+  const maxScale = Math.max(
+    1,
+    Math.floor(100 * Math.min(sheetWidth / (W + 2 * minMargin), sheetHeight / (block + 2 * minMargin))) / 100,
+  );
+  const scale = Math.min(Math.max(artworkScale, LAYOUT.minArtworkScale), maxScale);
+  if (scale !== 1) {
+    const centreFraction = (artY + block / 2) / sheetHeight;
+    const scaledWidth = Math.round(sheetWidth / scale);
+    const scaledHeight = sheetRatio ? Math.round(scaledWidth / sheetRatio) : Math.round(sheetHeight / scale);
+    artX = Math.floor((scaledWidth - W) / 2);
+    artY = Math.round(centreFraction * scaledHeight - block / 2);
+    artY = Math.min(Math.max(artY, minMargin), Math.floor(scaledHeight - block - minMargin));
+    sheetWidth = scaledWidth;
+    sheetHeight = scaledHeight;
+  }
   const textY = artY + artworkHeight + gap;
 
   const { fontSize, fields, overflow } = justify(
@@ -126,6 +158,7 @@ export function computeLayout(
   return {
     sheetWidth,
     sheetHeight,
+    scale: { value: scale, min: LAYOUT.minArtworkScale, max: maxScale },
     artwork: { x: artX, y: artY, width: W, height: artworkHeight },
     metadata: { y: textY, fontSize, fields, overflow },
   };
