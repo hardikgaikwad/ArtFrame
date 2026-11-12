@@ -1,0 +1,30 @@
+{
+  "name": "artframe",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ArtFrame - artwork documentation sheets, entirely in the browser.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "cropperjs": "1.7.0",
+    "heic-to": "1.6.7",
+    "jspdf": "4.2.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  }
+}
