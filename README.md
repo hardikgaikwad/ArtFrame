@@ -158,8 +158,9 @@ PNG falls back to a single full-size canvas.
   artist chooses explicitly.
 - **Browsers with fingerprinting protection** (Brave Shields, Firefox "resist fingerprinting",
   Safari Private Browsing) add tiny random changes to canvas pixels. That also changes exported
-  pixels very slightly. ArtFrame detects this and shows a notice on the Download step explaining
-  how to turn it off for the site. Exports still work. Safari Private Browsing may also block saving.
+  pixels very slightly (invisible, but not a bit-exact copy). Exports still work. For exact files,
+  allow fingerprinting for the site (in Brave: lion icon → fingerprinting "Allow").
+  Safari Private Browsing may also block saving.
 - Metadata is drawn in the device's system sans-serif (Helvetica on iPad, Roboto on
   Android), so letterforms differ slightly between devices. The justification is measured on
   the device doing the export, so alignment is always exact.

@@ -104,32 +104,3 @@ export class ObjectUrlSet {
     this.urls.clear();
   }
 }
-
-let readbackExact: boolean | null = null;
-
-/**
- * Whether pixels read back from a canvas are exactly what was drawn. Anti-fingerprinting
- * features (Brave Shields, Firefox resistFingerprinting, Safari Private Browsing) add small
- * random changes, which would also slightly alter exported artwork pixels.
- */
-export function canvasReadbackIsExact(): boolean {
-  if (readbackExact !== null) return readbackExact;
-  const size = 32;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) return (readbackExact = false);
-  const pattern = ctx.createImageData(size, size);
-  for (let i = 0; i < pattern.data.length; i += 4) {
-    pattern.data[i] = (i * 7) & 0xff;
-    pattern.data[i + 1] = (i * 13) & 0xff;
-    pattern.data[i + 2] = (i * 29) & 0xff;
-    pattern.data[i + 3] = 255;
-  }
-  ctx.putImageData(pattern, 0, 0);
-  const back = ctx.getImageData(0, 0, size, size).data;
-  readbackExact = back.every((value, i) => value === pattern.data[i]);
-  releaseCanvas(canvas);
-  return readbackExact;
-}

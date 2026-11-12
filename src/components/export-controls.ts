@@ -10,7 +10,6 @@ import { canStreamPng } from '../services/png-encoder';
 import type { ExportFormat } from '../types/artwork';
 import { button, h } from '../utils/dom';
 import { userMessage } from '../utils/errors';
-import { canvasReadbackIsExact } from '../utils/memory-manager';
 import { artworkFilename } from '../utils/filename-generator';
 import { createArtworkPreview } from './artwork-preview';
 import { OVERFLOW_MESSAGE } from './metadata-form';
@@ -63,16 +62,6 @@ export function createPreviewStep(session: EditorSession): StepView {
 
   const downloadBtn = button('Download', () => void runExport(1), { class: 'btn btn-primary btn-large' });
   const overflowNote = h('p', { class: 'warning-text' });
-  const privacyNote = canvasReadbackIsExact()
-    ? null
-    : h(
-        'p',
-        { class: 'warning-text', role: 'note' },
-        'Your browser’s privacy protection is making tiny random changes to pictures created on this page, ' +
-          'so downloaded files will not be an exact copy of your artwork. The changes are too small to see. ' +
-          'For exact files, turn off fingerprinting protection for this site (in Brave: tap the lion icon in ' +
-          'the address bar and set fingerprinting to “Allow”, then reload), or use another browser.',
-      );
 
   function selectedFormat(): ExportFormat {
     return (options.map((o) => o.querySelector('input')!).find((r) => r.checked)?.value as ExportFormat) ?? 'png';
@@ -201,7 +190,6 @@ export function createPreviewStep(session: EditorSession): StepView {
           'PNG keeps every detail of your picture exactly. JPG and JPEG are slightly compressed to make smaller files. ' +
             'No file type can bring back detail that was not in the original photo.',
         ),
-        privacyNote ?? '',
         overflowNote,
         downloadBtn,
         progress,
