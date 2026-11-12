@@ -396,9 +396,9 @@
 .crop-stage {
   /* Fits between the step bar and the Back / Next bar, so no corner handle is hidden under it.
      svh is the height with the browser's toolbars showing; vh is the fallback. */
-  height: min(50vh, 640px);
-  height: min(calc(100svh - 360px), 640px);
-  min-height: 260px;
+  height: min(calc(100vh - 410px), 640px);
+  height: min(calc(100svh - 410px), 640px);
+  min-height: 220px;
   background: var(--color-surface);
   margin-bottom: var(--space-3);
 }

@@ -39,12 +39,14 @@ export function createDetailsStep(session: EditorSession, onContinue: () => void
     return h('div', { class: 'field' }, h('label', { for: id, class: 'field-label' }, label), input);
   });
 
-  // The keyboard's "next" key moves between fields instead of leaving the step.
+  // The keyboard's "next" key moves between fields; "done" on the last one closes the keyboard.
   inputs.forEach((wrapper, i) => {
-    wrapper.querySelector('input')!.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' || i === inputs.length - 1) return;
+    const input = wrapper.querySelector('input')!;
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
       event.preventDefault();
-      inputs[i + 1].querySelector('input')!.focus();
+      if (i === inputs.length - 1) input.blur();
+      else inputs[i + 1].querySelector('input')!.focus();
     });
   });
 
@@ -64,10 +66,7 @@ export function createDetailsStep(session: EditorSession, onContinue: () => void
     ...inputs,
     warning,
   );
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    (document.activeElement as HTMLElement | null)?.blur();
-  });
+  form.addEventListener('submit', (event) => event.preventDefault());
 
   const el = h(
     'section',

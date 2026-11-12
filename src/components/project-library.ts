@@ -30,7 +30,7 @@ export function createLibrary(actions: {
 
   // "New Artwork" opens the photo picker straight away, as camera and messaging apps do.
   const input = h('input', { type: 'file', accept: ACCEPT_ATTRIBUTE, class: 'visually-hidden', id: 'upload-input', tabindex: -1 });
-  const createBtn = button('New Artwork', () => input.click(), { class: 'btn btn-primary btn-new' });
+  const createBtn = button('New Artwork', () => input.click(), { class: 'btn btn-primary btn-new', 'aria-label': 'New Artwork' });
   input.addEventListener('change', () => {
     const file = input.files?.[0];
     input.value = '';

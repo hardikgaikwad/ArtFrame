@@ -15,7 +15,7 @@ and reopened.
 - A numbered step bar ("1 Crop, 2 Details, 3 Background, 4 Download") with the same words used
   in the step headings and buttons; any step can be revisited by tapping it.
 - A Back / Next bar in the same place on every step ("Next: Details", "Next: Background",
-  "Next: Download", then "Download"). On phones it stays at the bottom of the screen.
+  "Next: Download", then "Download"). It stays at the bottom of the screen while scrolling.
 - One main (black) button per screen; instructions kept to one short line.
 - "New Artwork" opens the photo picker directly, as camera and messaging apps do.
 - PNG is the default file type; JPG, JPEG and PDF are one tap away under "File type: … Change".
