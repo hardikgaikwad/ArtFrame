@@ -12,6 +12,8 @@ const LABELS: Record<SheetRatioId, string> = {
   '4:3': '4:3',
   '2:3': '2:3',
   '3:2': '3:2',
+  '16:9': '16:9',
+  '9:16': '9:16',
 };
 
 /** Chooses the shape of the white background. The artwork itself is not changed. */

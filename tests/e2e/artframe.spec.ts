@@ -422,6 +422,16 @@ test('the background shape can be chosen after the details, and changed again la
   expect(isWhite(out.px(5, 5))).toBe(true);
   expect(isWhite(out.px(out.width - 5, out.height - 5))).toBe(true);
 
+  // The screen shapes are offered too.
+  await page.getByRole('button', { name: 'Change background' }).click();
+  await page.getByRole('button', { name: '9:16', exact: true }).click();
+  await expect
+    .poll(() => page.locator('.preview-canvas').evaluate((c: HTMLCanvasElement) => c.width / c.height))
+    .toBeCloseTo(9 / 16, 2);
+  await expect(page.getByRole('button', { name: '16:9', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '4:5', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+
   // Change the crop afterwards: the background shape is kept.
   await page.getByRole('button', { name: 'Change crop' }).click();
   await expect(page.getByRole('button', { name: 'Use this crop' })).toBeEnabled();

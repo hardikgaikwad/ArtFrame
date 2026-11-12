@@ -151,11 +151,20 @@ describe('background shape', () => {
       const left = layout.artwork.x;
       const right = layout.sheetWidth - left - w;
       expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
-      // Optical centre: top and bottom space keep the automatic 0.16 : 0.25 proportion.
+      // Visual centre: the artwork-and-details block sits slightly above the middle.
       const top = layout.artwork.y;
-      const bottom = layout.sheetHeight - (layout.metadata.y + LAYOUT.fontSize * w * LAYOUT.lineHeight);
-      expect(top / (top + bottom)).toBeCloseTo(LAYOUT.topMargin / (LAYOUT.topMargin + LAYOUT.bottomMargin), 2);
+      const blockBottom = layout.metadata.y + LAYOUT.fontSize * w * LAYOUT.lineHeight;
+      const bottom = layout.sheetHeight - blockBottom;
       expect(top).toBeLessThan(bottom);
+      expect(top).toBeGreaterThanOrEqual(auto.artwork.y);
+      expect(bottom).toBeGreaterThanOrEqual(auto.sheetHeight - (auto.metadata.y + LAYOUT.fontSize * w * LAYOUT.lineHeight) - 1);
+      if (layout.sheetHeight > auto.sheetHeight) {
+        // Taller background: block middle at exactly LAYOUT.visualCentre of the height.
+        expect(Math.abs((top + blockBottom) / 2 - LAYOUT.visualCentre * layout.sheetHeight)).toBeLessThanOrEqual(1);
+      } else {
+        // Wider background: same vertical placement as Automatic.
+        expect(top).toBe(auto.artwork.y);
+      }
       // Details stay directly under the artwork, exactly as wide.
       expect(layout.metadata.y - (layout.artwork.y + h)).toBe(Math.round(LAYOUT.metadataGap * w));
       expect(layout.metadata.fields[0].x).toBe(left);

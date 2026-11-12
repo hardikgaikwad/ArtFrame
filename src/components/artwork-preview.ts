@@ -32,6 +32,9 @@ export function createArtworkPreview(session: EditorSession, options: { maxHeigh
     canvas.style.height = `${cssHeight}px`;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
+    // The canvas can be a fraction of a pixel larger than the scaled sheet; keep that edge white.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     drawWholeSheet(ctx, layout, crop, preview.source, canvas.width / layout.sheetWidth);
   }
 

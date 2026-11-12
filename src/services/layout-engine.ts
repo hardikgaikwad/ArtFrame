@@ -19,6 +19,13 @@ export const LAYOUT = {
   bottomMargin: 0.25,
   /** Smallest acceptable space between two fields, as a multiple of the font size. */
   minFieldSpacing: 1.0,
+  /**
+   * With a fixed background shape, where the middle of the artwork-and-details block sits,
+   * as a fraction of the background height from the top. 0.5 is the exact middle; slightly
+   * less is the visual (optical) centre, as in picture framing. The automatic layout puts
+   * it at about the same place.
+   */
+  visualCentre: 0.46,
   textColor: '#1a1a1a',
   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
 } as const;
@@ -47,7 +54,7 @@ export interface SheetLayout {
 }
 
 /** Background shapes offered after the Details step. 'auto' fits the sheet to the artwork. */
-export const SHEET_RATIOS = ['auto', '4:5', '5:4', '3:4', '4:3', '2:3', '3:2'] as const;
+export const SHEET_RATIOS = ['auto', '4:5', '5:4', '3:4', '4:3', '2:3', '3:2', '16:9', '9:16'] as const;
 export type SheetRatioId = (typeof SHEET_RATIOS)[number];
 
 /** Width ÷ height of the background, or null for 'auto'. */
@@ -66,9 +73,9 @@ export function metadataValues(metadata: ArtworkMetadata): string[] {
  * The artwork sits at integer coordinates at its own size: it is drawn 1:1, never resampled.
  *
  * With a fixed `sheetRatio`, the automatic sheet is enlarged in one direction until it has
- * that shape (never shrunk, so the automatic margins are the minimum). Extra width is split
- * equally left and right; extra height is split in the same top : bottom proportion as the
- * automatic margins, which keeps the artwork at the optical centre, slightly above the middle.
+ * that shape (never shrunk, so the automatic margins are the minimum). The artwork is centred
+ * left to right, and the artwork-and-details block is placed at the visual centre
+ * (LAYOUT.visualCentre of the height), never closer to the edges than the automatic margins.
  */
 export function computeLayout(
   artworkWidth: number,
@@ -94,8 +101,10 @@ export function computeLayout(
       sheetWidth = wider;
     } else {
       const taller = Math.round(sheetWidth / sheetRatio);
-      const topShare = LAYOUT.topMargin / (LAYOUT.topMargin + LAYOUT.bottomMargin);
-      artY += Math.round((taller - sheetHeight) * topShare);
+      const minBottom = sheetHeight - (artY + artworkHeight + gap + baseFont * LAYOUT.lineHeight);
+      const block = artworkHeight + gap + baseFont * LAYOUT.lineHeight;
+      const centred = Math.round(LAYOUT.visualCentre * taller - block / 2);
+      artY = Math.min(Math.max(centred, artY), Math.floor(taller - block - minBottom));
       sheetHeight = taller;
     }
   }
