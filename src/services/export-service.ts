@@ -68,7 +68,8 @@ async function renderPngInStrips(
   onProgress?: (fraction: number) => void,
 ): Promise<Blob> {
   const stripHeight = Math.max(1, Math.min(height, Math.floor(STRIP_PIXELS / width)));
-  const strip = tryCreateCanvas(width, stripHeight);
+  // willReadFrequently keeps the strip in CPU memory, since every strip is read back.
+  const strip = tryCreateCanvas(width, stripHeight, { willReadFrequently: true });
   if (!strip) throw new ExportTooLargeError(0);
   const ctx = strip.getContext('2d', { alpha: false, willReadFrequently: true })!;
   const { layout, crop, source, scale } = request;

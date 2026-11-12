@@ -54,6 +54,10 @@ test('PNG export copies the artwork pixel-for-pixel and justifies the metadata t
   expect([out.width, out.height]).toEqual([geo.sheetWidth, geo.sheetHeight]);
   expect(out.width).toBe(1800);
 
+  // The on-screen preview has the same proportions as the exported file.
+  const preview = await page.locator('.preview-canvas').evaluate((c: HTMLCanvasElement) => [c.width, c.height]);
+  expect(preview[0] / preview[1]).toBeCloseTo(out.width / out.height, 2);
+
   // Artwork: identical pixels, no resampling.
   const src = await decodeImage(page, source, 'image/png');
   let mismatches = 0;
@@ -340,4 +344,30 @@ test('large pictures export at full size', async ({ page }) => {
   expect([out.width, out.height]).toEqual([geo.sheetWidth, geo.sheetHeight]);
   expect(out.px(edge - 1, y)).toEqual([255, 0, 0]);
   expect(out.px(edge, y)).toEqual([0, 0, 255]);
+});
+
+test('metadata text crossing a PNG strip boundary matches a whole-sheet render', async ({ page }) => {
+  // 3000×1200 → sheet 4500 wide, strips of 888 rows; the text line (y≈1740–1845) spans the boundary at 1776.
+  const W = 3000;
+  const H = 1200;
+  await uploadNew(page, { name: 'band.png', mimeType: 'image/png', buffer: await makeImage(page, W, H, 'image/png', 'halves') });
+  await toPreview(page);
+  await fillDetails(page, FULL_DETAILS);
+  await page.getByRole('button', { name: 'Continue to Preview' }).click();
+  const geo = expectedGeometry(W, H);
+  const boundary = Math.floor(4_000_000 / geo.sheetWidth) * 2;
+  expect(boundary).toBeGreaterThan(geo.metadata.y);
+  expect(boundary).toBeLessThan(geo.metadata.y + W * 0.035);
+
+  const region = { x: geo.artwork.x, y: geo.metadata.y, width: W, height: Math.ceil(W * 0.035 * 1.25) };
+  const png = await decodeImage(page, (await download(page, 'PNG')).bytes, 'image/png', region);
+  const jpg = await decodeImage(page, (await download(page, 'JPG')).bytes, 'image/jpeg', region);
+  let maxDiff = 0;
+  let dark = 0;
+  for (let i = 0; i < png.region.data.length; i += 4) {
+    for (let c = 0; c < 3; c++) maxDiff = Math.max(maxDiff, Math.abs(png.region.data[i + c] - jpg.region.data[i + c]));
+    if (png.region.data[i] < 128) dark++;
+  }
+  expect(dark).toBeGreaterThan(500); // text is really there
+  expect(maxDiff).toBeLessThan(48); // only JPEG noise, no seam or shift at the strip boundary
 });

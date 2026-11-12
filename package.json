@@ -2,6 +2,7 @@
   "name": "artframe",
   "private": true,
   "version": "1.0.0",
+  "license": "UNLICENSED",
   "description": "ArtFrame - artwork documentation sheets, entirely in the browser.",
   "type": "module",
   "engines": {

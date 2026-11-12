@@ -94,6 +94,10 @@ Key decisions:
   full-size, lossless PNG without ever allocating a full-size canvas. JPG/JPEG/PDF need a
   full-size canvas. If the device can't provide one, ArtFrame says so and offers a full-size
   PNG, or a smaller JPG/PDF that the artist must choose explicitly. Resolution is never reduced silently.
+- **Memory is checked before allocating.** Every large canvas is first compared with a memory
+  budget (from `navigator.deviceMemory` on Chrome, max 512 MB; a fixed 256 MB on Safari), then
+  verified by drawing and reading back a pixel. Phones tend to kill the tab instead of failing a
+  huge allocation, so an over-budget export is refused up front with the alternatives above.
 - **EXIF orientation is applied once, by the browser.** At startup ArtFrame checks that the
   browser rotates a tagged test JPEG itself. Cropper.js's own EXIF handling is turned off to
   avoid double rotation. Crop coordinates are stored in upright, full-resolution pixels.
@@ -102,6 +106,9 @@ Key decisions:
   working copy when needed), and `thumbnails`. The spec suggested putting thumbnails in
   `assets`. They are kept separate so that refreshing a thumbnail never rewrites the
   multi-megabyte image, and so the library can load without the large blobs.
+  Images are stored as raw bytes (ArrayBuffer + MIME type) and turned back into Blobs on read.
+  The bytes are exactly the uploaded file's. This avoids WebKit's Blob-in-IndexedDB failures,
+  which the WebKit e2e run hit.
 - **No framework.** A small `h()` element helper inserts all text as text nodes, never as HTML.
 
 ## Image quality
@@ -143,6 +150,9 @@ PNG falls back to a single full-size canvas.
   spec's proportional defaults (`LAYOUT` in `src/services/layout-engine.ts`), ready to be tuned.
 - **HEIC is not covered by automated tests.** No HEIC encoder was available to make a test
   file. It needs a real iPhone/iPad photo on both target devices.
+- **Very large photos.** A 64 MP photo (the Galaxy M32's high-resolution camera mode) makes a
+  ~150 MP sheet. That is over the phone's canvas memory budget for JPG/PDF, so ArtFrame offers a
+  full-size PNG or an explicitly smaller JPG/PDF.
 - **Large JPG/JPEG/PDF on iPad.** These need one full-size canvas, which an iPad 6 may not be able
   to allocate for big photos. ArtFrame then offers a full-size PNG, or a smaller JPG/PDF that the
   artist chooses explicitly.

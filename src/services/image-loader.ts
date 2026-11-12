@@ -61,14 +61,17 @@ export async function decodeImage(blob: Blob): Promise<DecodedImage> {
   const element = new Image();
   element.decoding = 'async';
   element.src = url;
+  const loaded = new Promise<void>((resolve, reject) => {
+    if (element.complete && element.naturalWidth) resolve();
+    element.onload = () => resolve();
+    element.onerror = () => reject(new Error('Image failed to load'));
+  });
   try {
-    if (typeof element.decode === 'function') {
+    try {
       await element.decode();
-    } else {
-      await new Promise<void>((resolve, reject) => {
-        element.onload = () => resolve();
-        element.onerror = () => reject(new Error('Image failed to load'));
-      });
+    } catch {
+      // WebKit has rejected decode() for some large but valid images; the load event decides.
+      await loaded;
     }
     if (!element.naturalWidth || !element.naturalHeight) throw new Error('Image has no dimensions');
   } catch (error) {

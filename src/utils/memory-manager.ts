@@ -13,16 +13,35 @@ export function estimateCanvasBytes(width: number, height: number): number {
   return width * height * 4;
 }
 
+const MB = 1024 * 1024;
+
+/**
+ * Largest single canvas we are willing to allocate. Mobile browsers often kill the tab
+ * instead of failing an oversized allocation, so we refuse before trying. Chrome reports
+ * approximate device RAM (navigator.deviceMemory); Safari does not, so it gets a
+ * conservative fixed budget (iPad canvas limits are lower than this anyway).
+ */
+export function canvasMemoryBudget(): number {
+  const deviceGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  if (!deviceGb) return 256 * MB;
+  return Math.min(512 * MB, Math.max(128 * MB, (deviceGb * 1024 * MB) / 8));
+}
+
 /** Creates an opaque canvas of the given size, or returns null when the device cannot provide one. */
-export function tryCreateCanvas(width: number, height: number): HTMLCanvasElement | null {
+export function tryCreateCanvas(
+  width: number,
+  height: number,
+  options: { willReadFrequently?: boolean } = {},
+): HTMLCanvasElement | null {
   if (width < 1 || height < 1 || width > MAX_SIDE || height > MAX_SIDE || width * height > MAX_AREA) {
     return null;
   }
+  if (estimateCanvasBytes(width, height) > canvasMemoryBudget()) return null;
   const canvas = document.createElement('canvas');
   try {
     canvas.width = width;
     canvas.height = height;
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: options.willReadFrequently ?? false });
     if (!ctx || canvas.width !== width || canvas.height !== height) {
       releaseCanvas(canvas);
       return null;
