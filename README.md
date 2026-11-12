@@ -156,8 +156,10 @@ PNG falls back to a single full-size canvas.
 - **Large JPG/JPEG/PDF on iPad.** These need one full-size canvas, which an iPad 6 may not be able
   to allocate for big photos. ArtFrame then offers a full-size PNG, or a smaller JPG/PDF that the
   artist chooses explicitly.
-- **Safari Private Browsing** may add slight noise to canvas pixels as anti-fingerprinting
-  protection, and may block saving. Use a normal window for final exports.
+- **Browsers with fingerprinting protection** (Brave Shields, Firefox "resist fingerprinting",
+  Safari Private Browsing) add tiny random changes to canvas pixels. That also changes exported
+  pixels very slightly. ArtFrame detects this and shows a notice on the Download step explaining
+  how to turn it off for the site. Exports still work. Safari Private Browsing may also block saving.
 - Metadata is drawn in the device's system sans-serif (Helvetica on iPad, Roboto on
   Android), so letterforms differ slightly between devices. The justification is measured on
   the device doing the export, so alignment is always exact.
